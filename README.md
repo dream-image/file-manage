@@ -1,5 +1,5 @@
 # React + Vite
-
+采用pnpm安装依赖包
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
