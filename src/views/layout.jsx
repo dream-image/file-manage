@@ -5,6 +5,7 @@ import downArrow from "/down.svg"
 import { useEffect, useLayoutEffect } from "react"
 export default function Layout({ children, ...props }) {
     const [fileTree, setFileTree] = useState({
+        //文件树
         'usr': {
             'a': {
                 'b.txt': "file"
@@ -20,7 +21,8 @@ export default function Layout({ children, ...props }) {
             }
         },
     })
-    const [foldState, setFoldState] = useState({})
+    const [foldState, setFoldState] = useState({}) 
+    //文件夹打开状态树
 
     // let getDomNumber = (fileTree) => {
     //     let keys = Object.keys(fileTree)
@@ -56,27 +58,29 @@ export default function Layout({ children, ...props }) {
     }, [])
 
     const Refs = useRef({})
-    let createDomRefs = (path, fileTree, Refs) => {
+    let initDomRefs = (path, fileTree, Refs) => {
+        //将文件树映射成Dom树
         path = path === '/' ? '' : path
         Refs.current['/'] = React.createRef()
         Object.keys(fileTree).forEach(i => {
             if (!Refs.current[path + "/" + i])
                 Refs.current[path + "/" + i] = React.createRef()
             if (typeof fileTree[i] === 'object') {
-                createDomRefs(path + "/" + i, fileTree[i], Refs)
+                initDomRefs(path + "/" + i, fileTree[i], Refs)
             }
         })
     }
-    createDomRefs('/', fileTree, Refs)
+    initDomRefs('/', fileTree, Refs)
     // console.log(Object.getOwnPropertyNames(Refs.current))
     useEffect(() => {
         //    let number=getDomNumber(fileTree)
-        createDomRefs('/', fileTree, Refs)
+        initDomRefs('/', fileTree, Refs)
         // console.log(Refs.current)
 
     }, [fileTree])
 
     let changeChosenBackgroundColorAndFoldState = (target) => {
+        
         // console.log(target)
         // console.log(Refs.current)
         setFoldState({ ...foldState, [target]: !foldState[target] })
@@ -121,7 +125,8 @@ export default function Layout({ children, ...props }) {
 
     }
 
-    let getFileDom = (path, fileTree, index) => {
+    let createFileDom = (path, fileTree, index) => {
+        //生成文件Dom树
         path = path === '/' ? '' : path
         return Object.keys(fileTree).map(i => {
             if (typeof fileTree[i] === 'string') {
@@ -144,7 +149,7 @@ export default function Layout({ children, ...props }) {
                                 </span>
                             </div>
                             <div className={`${style.border}  ${style.heightTransition}`} style={{ width: "100px" }}>
-                                {getFileDom(path + "/" + i, fileTree[i], index + 1)}
+                                {createFileDom(path + "/" + i, fileTree[i], index + 1)}
                             </div>
                         </div>
                     </div>
@@ -171,7 +176,7 @@ export default function Layout({ children, ...props }) {
                             </span>
                         </div>
                         <div className={`${style.border} ${style.heightTransition}`} style={{ width: "100px" }}>
-                            <div >{getFileDom('/', fileTree, 1)}</div>
+                            <div >{createFileDom('/', fileTree, 1)}</div>
                         </div>
                     </div>
                 </div>
