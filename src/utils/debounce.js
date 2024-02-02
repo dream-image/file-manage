@@ -14,6 +14,7 @@ export default function debounce(func, delay = 1000, immediate = false) {
       if(immediate){
           func.call(this,...args)
       }else{
+        if(timeout)
           clearTimeout(timeout)
           timeout = setTimeout(()=>{
               func.call(this,...args)

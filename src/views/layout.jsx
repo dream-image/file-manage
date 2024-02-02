@@ -14,7 +14,9 @@ export default function Layout({ children }) {
         'usr': {
             'a': {
                 'b.txt': "file",
-                "gulugulu.c": "file"
+                "gulugulu.c": "file",
+                "hello.vue": "file",
+                "hello.jsx": "file"
             }
         },
         'root': {
@@ -23,7 +25,9 @@ export default function Layout({ children }) {
                 'a': "file",
                 'x': {
                     'a': 'file',
-                    'test.js': 'file'
+                    'test.js': 'file',
+                    'helloWorld.java': 'file',
+                    'xycxd.love': 'file'
                 },
             }
         },
@@ -91,14 +95,14 @@ export default function Layout({ children }) {
 
     }, [fileTree])
 
-    let changeChosenBackgroundColorAndFoldState = (target,onlyHighLight=false) => {
+    let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false) => {
         // console.log(target)
         let rootStyle = getComputedStyle(document.documentElement)
         let defaultColor = rootStyle.getPropertyValue('--default-background-color')
         let activeColor = rootStyle.getPropertyValue('--left-bar-active-color')
         // console.log(target)
         // console.log(Refs.current)
-        if(!onlyHighLight){
+        if (!onlyHighLight) {
             setFoldState({ ...foldState, [target]: !foldState[target] })
         }
         // console.log(Refs.current[target])
@@ -108,13 +112,13 @@ export default function Layout({ children }) {
             if (i === target) {
                 Refs.current[i].current.style.backgroundColor = activeColor
                 if (onlyHighLight) {
-                  return   
+                    return
                 }
                 let brotherDom = Refs.current[i].current.parentNode.children[1]
                 if (!brotherDom)
                     return
 
-               
+
                 let parentAutoHeight = () => {
                     //将层层往外设置父节点的高度，不然会出现父高度定死时，打开子节点后子节点溢出而不显示
                     let dom = brotherDom.parentNode
@@ -233,7 +237,7 @@ export default function Layout({ children }) {
             // console.log(i)
             if (!foldState[i]) {
                 // console.log("找到false")
-                changeChosenBackgroundColorAndFoldState(i,true)
+                changeChosenBackgroundColorAndFoldState(i, true)
                 return
             }
         }
@@ -247,6 +251,47 @@ export default function Layout({ children }) {
     let [gap, setGap] = useState(5)
 
 
+    useEffect(() => {
+        //监听侧栏右侧边界
+        //定义模糊半径
+        let blurRadius = getComputedStyle(document.documentElement).getPropertyValue("--right-border-width").split("px")[0] * 1
+        // console.log(blurRadius)
+        //范围修正
+        let rangeAmend = 3
+
+        let clickObserve = (e) => {
+            let position = leftBarDom.current.style.width.split("px")[0] * 1 + 5
+            if (e.clientX >= position - blurRadius + rangeAmend && e.clientX <= position + blurRadius + rangeAmend) {
+                // console.log(e.clientX,position - blurRadius + rangeAmend,position + blurRadius + rangeAmend)
+                const startX = e.clientX;
+                // console.log("startX:",e.clientX)
+                let moveObserve = (e) => {
+                    let moveX = e.clientX - startX
+                    if (position + moveX > 130 && position + moveX < 300) {
+                        // console.log("@@",leftBarWidth,moveX)
+                        setLeftBarWidth(position - 5 + moveX)
+                        // flushSync()
+                    }
+                }
+                window.addEventListener('mousemove', moveObserve)
+                let removeObserve = () => {
+                    window.removeEventListener('mousemove', moveObserve)
+                    window.removeEventListener('mouseup', removeObserve)
+                    //因为要改变鼠标样式的监听里面的leftBarWidth依旧是上次的，不会更新，因此，需要手动重新加载一下监听函数
+                }
+                window.addEventListener('mouseup', removeObserve)
+            }
+        }
+        window.addEventListener('mousedown', clickObserve)
+        return () => {
+
+            window.removeEventListener('mousedown', clickObserve)
+        }
+    }, [])
+    // let observerRightBorderOfLeftBarForMove=()=>{
+
+    // }
+    // observerRightBorderOfLeftBarForMove()
     let leftBarDom = useRef(null)
     let topBarDom = useRef(null)
     let createFileDom = (path, fileTree, index) => {
@@ -289,12 +334,12 @@ export default function Layout({ children }) {
 
     return (
         <div>
-            <div className={style.leftBar} style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
+            <div className={style.leftBar} id="leftBar" style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
                 <div style={{ width: "100%", height: "20px", display: "flex", justifyContent: "flex-end" }}>
                     <img src="/FileImg/file.svg" width="15px" height="15px" alt="新增文件" className={style.choice} />
                     <img src="/dir.svg" width="15px" height="15px" alt="新增文件夹" className={style.choice} />
                     <img src="/delete.svg" width="15px" height="15px" alt="删除" className={style.choice} />
-                    <img src="/refresh.svg" width="15px" height="15px" alt="刷新" className={style.choice} />
+                    <img src="/refresh.svg" width="15px" height="15px" alt="刷新" className={style.choice}  />
                 </div>
                 <div style={{ display: "flex" }} className="dir-wrapper">
                     <div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
