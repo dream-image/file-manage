@@ -1,14 +1,10 @@
-import { useState } from 'react'
-
+import Content from "../components/Content"
 import './App.css'
 
 function App() {
 
   return (
-    <div>
-      <span>文件内容</span>
-
-    </div>
+      <Content></Content>
   )
 }
 
