@@ -4,7 +4,10 @@ import JS from "/FileImg/JavaScript.svg"
 import Python from "/FileImg/python.svg"
 import C from "/FileImg/C.svg"
 import TXT from "/FileImg/txt.svg"
+import * as svg from "/FileImg/*.svg"
+
 export default function FileImg(props) {
+    console.log(svg)
     props={
         ...props,
         fileType:props.fileType?props.fileType.toLowerCase():'default'
