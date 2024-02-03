@@ -20,6 +20,7 @@ export default function Layout({ children, changeFocus }) {
     // console.log(CurrentFocus,changeFocus)
     const [fileTree, setFileTree] = useState([
         //文件树
+        //规定：每个{}内只能有一个属性
         {
             'usr': [
                 {
@@ -48,7 +49,11 @@ export default function Layout({ children, changeFocus }) {
                         { 'a': "file" },
                         { 'x': "file" }
                     ],
+                    
                 },
+                {
+                    'test1':"file"
+                }
             ],
         }
     ])
