@@ -7,31 +7,51 @@ import FileImg from "../components/FileImg"
 import { useEffect } from "react"
 import 'animate.css';
 import { flushSync } from "react-dom"
+import { useContext } from "react"
+import { CurrentFocusContext } from '../contexts/currentFocusContext'
 
-export default function Layout({ children }) {
-    const [fileTree, setFileTree] = useState({
+
+//构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
+const fileSuffix = '#file'
+const dirSuffix = '#dir'
+
+export default function Layout({ children, changeFocus }) {
+    const CurrentFocus = useContext(CurrentFocusContext)
+    // console.log(CurrentFocus,changeFocus)
+    const [fileTree, setFileTree] = useState([
         //文件树
-        'usr': {
-            'a': {
-                'b.txt': "file",
-                "gulugulu.c": "file",
-                "hello.vue": "file",
-                "hello.jsx": "file"
-            }
-        },
-        'root': {
-            'test': {
-                'c.txt': "file",
-                'a': "file",
-                'x': {
-                    'a': 'file',
-                    'test.js': 'file',
-                    'helloWorld.java': 'file',
-                    'xycxd.love': 'file'
+        {
+            'usr': [
+                {
+                    'a': [
+                        { 'b.txt': "file" },
+                        { "gulugulu.c": "file" },
+                        { "hello.vue": "file" },
+                        { "hello.jsx": "file" }
+                    ]
                 },
-            }
+            ],
         },
-    })
+        {
+            'root': [
+                {
+                    'test': [
+                        {
+                            'x': [
+                                { 'a': 'file' },
+                                { 'test.js': 'file' },
+                                { 'helloWorld.java': 'file' },
+                                { 'xycxd.love': 'file' }
+                            ],
+                        },
+                        { 'c.txt': "file" },
+                        { 'a': "file" },
+                        { 'x': "file" }
+                    ],
+                },
+            ],
+        }
+    ])
     const [topBar, setTopBar] = useState([])
     const [foldState, setFoldState] = useState({})
     //左侧导航栏文件夹打开状态树
@@ -56,11 +76,15 @@ export default function Layout({ children }) {
         }
         let getTree = (fileTree, path) => {
             path = path === '/' ? '' : path
-            Object.keys(fileTree).forEach(i => {
-                if (typeof fileTree[i] === 'object') {
-                    tree[path + '/' + i] = false
-                    getTree(fileTree[i], path + '/' + i)
-                }
+            fileTree.forEach((i, index) => {
+                Object.keys(i).forEach((j) => {
+                    // console.log(,i[j])
+                    if (i[j] instanceof Array) {
+                        tree[path + '/' + j] = false
+                        getTree(i[j], path + '/' + j)
+                    }
+                })
+
             })
         }
         getTree(fileTree, '/')
@@ -70,20 +94,27 @@ export default function Layout({ children }) {
     //初始化折叠状态树
     useEffect(() => {
         setFoldState(initFoldState(fileTree))
+        // flushSync()
         // console.log(foldState)
     }, [])
 
     const Refs = useRef({})
+    Refs.current['/'] = React.createRef()
     let initDomRefs = (path, fileTree, Refs) => {
         //将文件树映射成Dom树
         path = path === '/' ? '' : path
-        Refs.current['/'] = React.createRef()
-        Object.keys(fileTree).forEach(i => {
-            if (!Refs.current[path + "/" + i])
-                Refs.current[path + "/" + i] = React.createRef()
-            if (typeof fileTree[i] === 'object') {
-                initDomRefs(path + "/" + i, fileTree[i], Refs)
-            }
+        fileTree.forEach(j => {
+            Object.keys(j).forEach(i => {
+                if (j[i] instanceof Array) {
+                    if (!Refs.current[path + "/" + i + dirSuffix])
+                        Refs.current[path + "/" + i + dirSuffix] = React.createRef()
+                    initDomRefs(path + "/" + i, j[i], Refs)
+                } else {
+                    if (!Refs.current[path + "/" + i + fileSuffix])
+                        Refs.current[path + "/" + i + fileSuffix] = React.createRef()
+                }
+            })
+
         })
     }
     initDomRefs('/', fileTree, Refs)
@@ -107,10 +138,18 @@ export default function Layout({ children }) {
         }
         // console.log(Refs.current[target])
         Object.keys(Refs.current).forEach(i => {
+            // console.log(Refs.current)
+            // console.log(i)
             // console.log(Refs.current[i])
             Refs.current[i].current.style.backgroundColor = defaultColor
             if (i === target) {
                 Refs.current[i].current.style.backgroundColor = activeColor
+                // let index=i.lastIndexOf('\/')
+                // changeFocus({
+                //     name: i.substring(index+1),
+                //     path: i.substring(0,index),
+
+                // })
                 if (onlyHighLight) {
                     return
                 }
@@ -235,13 +274,13 @@ export default function Layout({ children }) {
         // console.log(foldState)
         for (let i of a) {
             // console.log(i)
-            if (!foldState[i]) {
+            if (!foldState[i+dirSuffix]) {
                 // console.log("找到false")
-                changeChosenBackgroundColorAndFoldState(i, true)
+                changeChosenBackgroundColorAndFoldState(i + dirSuffix, true)
                 return
             }
         }
-        changeChosenBackgroundColorAndFoldState(target.path + "/" + target.name)
+        changeChosenBackgroundColorAndFoldState(target.path + "/" + target.name + fileSuffix)
 
 
     }
@@ -297,37 +336,41 @@ export default function Layout({ children }) {
     let createFileDom = (path, fileTree, index) => {
         //生成文件Dom树
         path = path === '/' ? '' : path
-        return Object.keys(fileTree).map(i => {
-            if (typeof fileTree[i] === 'string') {
-                return (
-                    <div key={path + "/" + i}>
-                        {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
-                        <div title={path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i); openFile({ name: i, path: path }) }}>
-                            {/* {console.log(Refs.current)} */}
-                            <span style={{ width: "max-content", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center" }}>
-                                <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
-                        </div>
-                    </div>
-                )
-            } else {
-                return (
-                    <div key={path + "/" + i} style={{ display: "flex" }}>
-                        <div title={path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column" }}>
-                            <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i)}>
-                                <span style={{ width: "min-content", transform: `translateX(${gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
-                                    <img src={foldState[path + "/" + i] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
-                                    <DirImg></DirImg>
-                                    {i}
-                                </span>
-                            </div>
-                            <div className={`${style.border}  ${style.heightTransition}`} style={{ width: "100%", height: "0" }}>
-                                {/* 高度初始化为0就是默认不展开 */}
-                                {createFileDom(path + "/" + i, fileTree[i], index + 1)}
+        // console.log(fileTree)
+        return fileTree.map(j => {
+            return Object.keys(j).map(i => {
+                if (!(j[i] instanceof Array)) {
+                    return (
+                        <div key={path + "/" + i}>
+                            {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
+                            <div title={path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path }) }}>
+                                {/* {console.log(Refs.current)} */}
+                                <span style={{ width: "max-content", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center" }}>
+                                    <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
                             </div>
                         </div>
-                    </div>
-                )
-            }
+                    )
+                } else {
+                    return (
+                        <div key={path + "/" + i} style={{ display: "flex" }}>
+                            <div title={path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column" }}>
+                                <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
+                                    <span style={{ width: "min-content", transform: `translateX(${gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
+                                        <img src={foldState[path + "/" + i+dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
+                                        <DirImg></DirImg>
+                                        {i}
+                                    </span>
+                                </div>
+                                <div className={`${style.border}  ${style.heightTransition}`} style={{ width: "100%", height: "0" }}>
+                                    {/* 高度初始化为0就是默认不展开 */}
+                                    {createFileDom(path + "/" + i, j[i], index + 1)}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+            })
+
         })
 
     }
@@ -339,7 +382,7 @@ export default function Layout({ children }) {
                     <img src="/FileImg/file.svg" width="15px" height="15px" alt="新增文件" className={style.choice} />
                     <img src="/dir.svg" width="15px" height="15px" alt="新增文件夹" className={style.choice} />
                     <img src="/delete.svg" width="15px" height="15px" alt="删除" className={style.choice} />
-                    <img src="/refresh.svg" width="15px" height="15px" alt="刷新" className={style.choice}  />
+                    <img src="/refresh.svg" width="15px" height="15px" alt="刷新" className={style.choice} />
                 </div>
                 <div style={{ display: "flex" }} className="dir-wrapper">
                     <div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
