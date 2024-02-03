@@ -20,7 +20,7 @@ export default function Layout({ children, changeFocus }) {
     // console.log(CurrentFocus,changeFocus)
     const [fileTree, setFileTree] = useState([
         //文件树
-        //规定：每个{}内只能有一个属性
+        //规定：每个{}内只能有一个属性,即[]中的每一项是一个文件/文件夹
         {
             'usr': [
                 {
