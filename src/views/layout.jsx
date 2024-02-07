@@ -16,7 +16,7 @@ import { CurrentFocusContext } from '../contexts/currentFocusContext'
 import { copy } from "../utils/copyObject"
 
 import { Button } from 'antd'
-import { FolderOpenTwoTone } from '@ant-design/icons'
+import { FolderOpenTwoTone, UndoOutlined, DeleteOutlined, FolderAddOutlined, FileAddOutlined } from '@ant-design/icons'
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
@@ -533,10 +533,10 @@ export default function Layout({ children, changeFocus }) {
             {/* 侧栏 */}
             <div className={style.leftBar} id="leftBar" style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
                 <div style={{ width: "100%", height: "20px", display: "flex", justifyContent: "flex-end" }}>
-                    <img src="/FileImg/file.svg" width="15px" height="15px" alt="新增文件" className={style.choice} />
-                    <img src="/dir.svg" width="15px" height="15px" alt="新增文件夹" className={style.choice} />
-                    <img src="/delete.svg" width="15px" height="15px" alt="删除" className={style.choice} />
-                    <img src="/refresh.svg" width="15px" height="15px" alt="刷新" className={style.choice} onClick={()=>openDir(currentDirHandle)} />
+                    <Button size="small" icon={<FolderAddOutlined />} src="/FileImg/file.svg" alt="新增文件" className={style.choice} />
+                    <Button size="small" icon={<FileAddOutlined />} src="/dir.svg" alt="新增文件夹" className={style.choice} />
+                    <Button size="small" icon={<DeleteOutlined />} src="/delete.svg" alt="删除" className={style.choice} />
+                    <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => openDir(currentDirHandle)} />
                 </div>
                 <div style={{ display: "flex" }} className="dir-wrapper">
                     <div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>

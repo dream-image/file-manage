@@ -23,7 +23,8 @@ const Main = (props) => {
       components: {
         Button: {
           defaultActiveBorderColor: "#4fc3f7",
-          defaultHoverBorderColor:"#71c4ef"
+          defaultHoverBorderColor:"#71c4ef",
+          defaultBorderColor:"#eceff1"
         },
       },
     }}>
