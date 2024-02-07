@@ -27,6 +27,8 @@ export default function Layout({ children, changeFocus }) {
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
     let [gap, setGap] = useState(5) //文件夹首与其子目录首的距离
     let [loading, setLoading] = useState(false) //打开文件的加载状态
+    let [isOpen, setIsOpen] = useState(false)//是否已打开文件
+    let [currentDirHandle, setCurrentDirHandle] = useState(null)//当前目录的句柄
     // console.log(CurrentFocus,changeFocus)
     const [fileTree, setFileTree] = useState([
         //文件树
@@ -295,9 +297,13 @@ export default function Layout({ children, changeFocus }) {
 
 
     //本地读取文件夹
-    let openDir = async () => {
+    let openDir = async (handle) => {
         try {
-            const handle = await showDirectoryPicker()
+            if (!handle) {
+                handle = await showDirectoryPicker()
+                setCurrentDirHandle(handle)
+            }
+
             // console.log(handle)
             let tree = []
             async function processHandle(handle, node) {
@@ -321,7 +327,9 @@ export default function Layout({ children, changeFocus }) {
             }
             setLoading(true)
             const rootHandle = await processHandle(handle, tree)
+
             setLoading(false)
+            setIsOpen(true)
             // console.log(tree)
             tree.sort(sort)
             // console.log(tree)
@@ -528,7 +536,7 @@ export default function Layout({ children, changeFocus }) {
                     <img src="/FileImg/file.svg" width="15px" height="15px" alt="新增文件" className={style.choice} />
                     <img src="/dir.svg" width="15px" height="15px" alt="新增文件夹" className={style.choice} />
                     <img src="/delete.svg" width="15px" height="15px" alt="删除" className={style.choice} />
-                    <img src="/refresh.svg" width="15px" height="15px" alt="刷新" className={style.choice} />
+                    <img src="/refresh.svg" width="15px" height="15px" alt="刷新" className={style.choice} onClick={()=>openDir(currentDirHandle)} />
                 </div>
                 <div style={{ display: "flex" }} className="dir-wrapper">
                     <div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
@@ -549,7 +557,7 @@ export default function Layout({ children, changeFocus }) {
             {/* 侧栏底部 */}
             <div>
 
-                <Button onClick={() => openDir()} size="large" loading={loading}
+                <Button onClick={() => openDir()} size="large" loading={loading} disabled={isOpen}
                     icon={<FolderOpenTwoTone />}
                     className={style.button_hover}
                     style={{
