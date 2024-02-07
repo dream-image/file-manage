@@ -1,22 +1,32 @@
 import React, { useRef, useState } from "react"
 import style from "./style.module.css"
+
+import style_from_demo from '../index.module.css'
+
 import rightArrow from "/right1.svg"
 import downArrow from "/down1.svg"
 import DirImg from "../components/DirImg"
 import FileImg from "../components/FileImg"
+import OpenFile from "/OpenFile.svg"
 import { useEffect } from "react"
 import 'animate.css';
 import { flushSync } from "react-dom"
 import { useContext } from "react"
 import { CurrentFocusContext } from '../contexts/currentFocusContext'
+import { copy } from "../utils/copyObject"
 
-
+import { Button } from 'antd'
+import { FolderOpenTwoTone } from '@ant-design/icons'
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
 
 export default function Layout({ children, changeFocus }) {
     const CurrentFocus = useContext(CurrentFocusContext)
+    //配置暂时先写这
+    let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
+    let [gap, setGap] = useState(5) //文件夹首与其子目录首的距离
+    let [loading, setLoading] = useState(false) //打开文件的加载状态
     // console.log(CurrentFocus,changeFocus)
     const [fileTree, setFileTree] = useState([
         //文件树
@@ -49,18 +59,50 @@ export default function Layout({ children, changeFocus }) {
                         { 'a': "file" },
                         { 'x': "file" }
                     ],
-                    
+
                 },
                 {
-                    'test1':"file"
+                    'test1': "file"
                 }
             ],
+
+        },
+        {
+            'test': "file"
         }
     ])
+    const [showedFile, setShowedFile] = useState(shallowFile(fileTree))
+
+    function shallowFile(fileTree) {
+
+        let obj = []
+        fileTree.forEach(i => {
+            let name = Object.keys(i)[0]
+            obj.push({
+                [name]: i[name] instanceof Array ? [] : "file"
+            })
+        })
+        return obj
+    }
+    let sort = (a, b) => {
+        const aValue = Object.values(a)[0];
+        const bValue = Object.values(b)[0];
+
+        if (aValue === "file" && bValue !== "file") {
+            return 1; // 文件排在文件夹后面
+        } else if (aValue !== "file" && bValue === "file") {
+            return -1; // 文件夹排在文件前面
+        } else {
+            // 相同类型的节点，按照名称进行排序
+            const aKey = Object.keys(a)[0];
+            const bKey = Object.keys(b)[0];
+            return aKey.localeCompare(bKey);
+        }
+    }
     const [topBar, setTopBar] = useState([])
     const [foldState, setFoldState] = useState({})
     //左侧导航栏文件夹打开状态树
-
+    // const [oldFoldState, setOldFoldState] = useState({})
 
 
     // let getDomNumber = (fileTree) => {
@@ -85,7 +127,7 @@ export default function Layout({ children, changeFocus }) {
                 Object.keys(i).forEach((j) => {
                     // console.log(,i[j])
                     if (i[j] instanceof Array) {
-                        tree[path + '/' + j] = false
+                        tree[path + '/' + j + dirSuffix] = false
                         getTree(i[j], path + '/' + j)
                     }
                 })
@@ -105,31 +147,82 @@ export default function Layout({ children, changeFocus }) {
 
     const Refs = useRef({})
     Refs.current['/'] = React.createRef()
-    let initDomRefs = (path, fileTree, Refs) => {
+    let initDomRefs = (path, node, Refs) => {
         //将文件树映射成Dom树
         path = path === '/' ? '' : path
-        fileTree.forEach(j => {
+        node.forEach(j => {
             Object.keys(j).forEach(i => {
                 if (j[i] instanceof Array) {
-                    if (!Refs.current[path + "/" + i + dirSuffix])
-                        Refs.current[path + "/" + i + dirSuffix] = React.createRef()
+                    // if (!Refs.current[path + "/" + i + dirSuffix])
+                    Refs.current[path + "/" + i + dirSuffix] = React.createRef()
                     initDomRefs(path + "/" + i, j[i], Refs)
                 } else {
-                    if (!Refs.current[path + "/" + i + fileSuffix])
-                        Refs.current[path + "/" + i + fileSuffix] = React.createRef()
+                    // if (!Refs.current[path + "/" + i + fileSuffix])
+                    Refs.current[path + "/" + i + fileSuffix] = React.createRef()
                 }
             })
 
         })
     }
-    initDomRefs('/', fileTree, Refs)
+    initDomRefs('/', showedFile, Refs)
     // console.log(Object.getOwnPropertyNames(Refs.current))
-    useEffect(() => {
-        //    let number=getDomNumber(fileTree)
-        initDomRefs('/', fileTree, Refs)
-        // console.log(Refs.current)
+    //复杂的修改折叠状态时的副作用处理
+    function changeFoldState(model, target = "", value) {
+        let tree = copy(showedFile)
+        let path = target.split('/')
+        path.shift()
+        path.push(path.pop().split(dirSuffix)[0])
+        // console.log(path)
+        if (model === 'inverse') {
+            function goto(path, node, index, showNode) {
+                let index2 = 0;
+                // console.log(node)
+                // console.log(showNode)
+                for (let i of node) {
+                    let name = Object.keys(i)[0]
+                    // console.log(name)
+                    if (i[name] instanceof Array && name === path[index]) {
+                        if (index < path.length - 1)
+                            return goto(path, i[name], index + 1, showNode[index2][name])
+                        // delete i[name]
+                        // console.log(i[name])
+                        // console.log(showNode[index2][name])
+                        // console.log(value)
+                        if (!value) {
+                            // console.log('@@@@',i[name])
+                            // showNode[index2][name].splice(0, showNode[index2][name].length)
+                            // console.log('@@@',i[name])
+                        } else {
+                            // console.log('@@',i[name])
+                            if (showNode[index2][name].length == 0)
+                                showNode[index2][name] = [...copy(i[name].sort(sort))]
+                            // console.log('@',i[name])
 
-    }, [fileTree])
+                        }
+                        return true
+
+                    }
+                    index2++;
+                }
+                return false
+            }
+            let result = goto(path, fileTree, 0, tree)
+            // console.log(result)
+            // console.log(tree)
+            // console.log(fileTree)
+            if (result) {
+                Refs.current = {}
+                Refs.current['/'] = React.createRef()
+                initDomRefs('/', tree, Refs)
+
+                setShowedFile(tree)
+                // flushSync()
+
+            }
+
+
+        }
+    }
 
     let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false) => {
         // console.log(target)
@@ -138,63 +231,112 @@ export default function Layout({ children, changeFocus }) {
         let activeColor = rootStyle.getPropertyValue('--left-bar-active-color')
         // console.log(target)
         // console.log(Refs.current)
-        if (!onlyHighLight) {
+        if (!onlyHighLight && new RegExp(dirSuffix).test(target)) {
             setFoldState({ ...foldState, [target]: !foldState[target] })
+            changeFoldState("inverse", target, !foldState[target])
         }
         // console.log(Refs.current[target])
-        Object.keys(Refs.current).forEach(i => {
-            // console.log(Refs.current)
-            // console.log(i)
-            // console.log(Refs.current[i])
-            Refs.current[i].current.style.backgroundColor = defaultColor
-            if (i === target) {
-                Refs.current[i].current.style.backgroundColor = activeColor
-                // let index=i.lastIndexOf('\/')
-                // changeFocus({
-                //     name: i.substring(index+1),
-                //     path: i.substring(0,index),
+        setTimeout(() => {
+            Object.keys(Refs.current).forEach(i => {
+                // console.log(Refs.current)
+                // console.log(i)
+                // console.log(Refs.current[i])
+                Refs.current[i].current.style.backgroundColor = defaultColor
+                if (i === target) {
+                    Refs.current[i].current.style.backgroundColor = activeColor
+                    // let index=i.lastIndexOf('\/')
+                    // changeFocus({
+                    //     name: i.substring(index+1),
+                    //     path: i.substring(0,index),
 
-                // })
-                if (onlyHighLight) {
-                    return
-                }
-                let brotherDom = Refs.current[i].current.parentNode.children[1]
-                if (!brotherDom)
-                    return
-
-
-                let parentAutoHeight = () => {
-                    //将层层往外设置父节点的高度，不然会出现父高度定死时，打开子节点后子节点溢出而不显示
-                    let dom = brotherDom.parentNode
-                    // console.log(dom.className)
-                    while (dom.className != 'dir-wrapper') {
-                        dom.style.height = 'auto'
-                        dom = dom.parentNode
-                    }
-                }
-                if (foldState[target]) {
-                    brotherDom.style.height = '0px'
-                    parentAutoHeight()
-                }
-                else {
-                    parentAutoHeight()
-                    brotherDom.style.height = "auto"
-                    let height = brotherDom.getBoundingClientRect().height
-                    brotherDom.style.height = 0
-                    brotherDom.offsetHeight;
-                    if (target !== '/') {
-                        brotherDom.style.height = height + "px"
+                    // })
+                    if (onlyHighLight) {
                         return
                     }
-                    brotherDom.style.height = "100%"
+                    let brotherDom = Refs.current[i].current.parentNode.children[1]
+                    if (!brotherDom)
+                        return
 
+
+                    let parentAutoHeight = () => {
+                        //将层层往外设置父节点的高度，不然会出现父高度定死时，打开子节点后子节点溢出而不显示
+                        let dom = brotherDom.parentNode
+                        // console.log(dom.className)
+                        while (dom.className != 'dir-wrapper') {
+                            dom.style.height = 'auto'
+                            dom = dom.parentNode
+                        }
+                    }
+                    if (foldState[target]) {
+                        brotherDom.style.height = '0px'
+                        parentAutoHeight()
+                    }
+                    else {
+                        parentAutoHeight()
+                        brotherDom.style.height = "auto"
+                        let height = brotherDom.getBoundingClientRect().height
+                        brotherDom.style.height = 0
+                        brotherDom.offsetHeight;
+                        if (target !== '/') {
+                            brotherDom.style.height = height + "px"
+                            return
+                        }
+                        brotherDom.style.height = "100%"
+
+                    }
                 }
-            }
-        })
+            })
+        }, 100)
+
 
 
     }
 
+
+
+    //本地读取文件夹
+    let openDir = async () => {
+        try {
+            const handle = await showDirectoryPicker()
+            // console.log(handle)
+            let tree = []
+            async function processHandle(handle, node) {
+                // console.log(node)
+                if (handle.kind === 'file') {
+                    node.push({ [handle.name]: "file" })
+                    return handle
+                }
+                handle.children = []
+                const iter = handle.entries()
+                for await (let [name, inode] of iter) {
+                    if (inode.kind === 'directory') {
+                        node.push({ [name]: [] })
+                        handle.children.push(await processHandle(inode, node[node.length - 1][name]))
+                    }
+                    else {
+                        node.push({ [name]: "file" })
+                    }
+                }
+                return handle
+            }
+            setLoading(true)
+            const rootHandle = await processHandle(handle, tree)
+            setLoading(false)
+            // console.log(tree)
+            tree.sort(sort)
+            // console.log(tree)
+            console.log("文件读取完毕")
+            initDomRefs('/', tree, Refs)
+            setFileTree(tree)
+            setFoldState(initFoldState(tree))
+            setShowedFile(shallowFile(tree))
+
+        } catch (error) {
+            console.log(error)
+            // console.log("")
+        }
+
+    }
 
     //打开文件
     let openFile = (target) => {
@@ -202,7 +344,7 @@ export default function Layout({ children, changeFocus }) {
             return i.name == target.name && i.path == target.path
         })
         let list
-        list = Array.from(topBar)
+        list = copy(topBar)
         list.forEach(i => {
             i.active = false
         })
@@ -227,7 +369,7 @@ export default function Layout({ children, changeFocus }) {
             return i.name == target.name && i.path == target.path && i?.active
         })
         if (index > 0) {
-            let list = Array.from(topBar)
+            let list = copy(topBar)
             list[index].active = false
             list[index - 1].active = true
             setTopBar(list)
@@ -242,7 +384,7 @@ export default function Layout({ children, changeFocus }) {
             let index = topBar.findIndex((i) => {
                 return i.name == target.name && i.path == target.path
             })
-            let list = Array.from(topBar)
+            let list = copy(topBar)
             list.splice(index, 1)
             if (index != -1)
                 setTopBar([...list])
@@ -252,7 +394,7 @@ export default function Layout({ children, changeFocus }) {
 
     //顶栏中选中文件
     let showFile = (target) => {
-        let list = Array.from(topBar)
+        let list = copy(topBar)
         for (let i of list) {
             if (i.name == target.name && i.path == target.path) {
                 i.active = true
@@ -279,7 +421,7 @@ export default function Layout({ children, changeFocus }) {
         // console.log(foldState)
         for (let i of a) {
             // console.log(i)
-            if (!foldState[i+dirSuffix]) {
+            if (!foldState[i + dirSuffix]) {
                 // console.log("找到false")
                 changeChosenBackgroundColorAndFoldState(i + dirSuffix, true)
                 return
@@ -290,9 +432,6 @@ export default function Layout({ children, changeFocus }) {
 
     }
 
-    //配置暂时先写这
-    let [leftBarWidth, setLeftBarWidth] = useState(130)
-    let [gap, setGap] = useState(5)
 
 
     useEffect(() => {
@@ -338,30 +477,30 @@ export default function Layout({ children, changeFocus }) {
     // observerRightBorderOfLeftBarForMove()
     let leftBarDom = useRef(null)
     let topBarDom = useRef(null)
-    let createFileDom = (path, fileTree, index) => {
+    let createFileDom = (path, node, index) => {
         //生成文件Dom树
         path = path === '/' ? '' : path
         // console.log(fileTree)
-        return fileTree.map(j => {
+        return node.map(j => {
             return Object.keys(j).map(i => {
                 if (!(j[i] instanceof Array)) {
                     return (
                         <div key={path + "/" + i}>
                             {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
-                            <div title={path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path }) }}>
+                            <div title={!path ? i : path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path }) }}>
                                 {/* {console.log(Refs.current)} */}
-                                <span style={{ width: "max-content", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center" }}>
+                                <span style={{ width: "90%", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
                                     <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
                             </div>
                         </div>
                     )
                 } else {
                     return (
-                        <div key={path + "/" + i} style={{ display: "flex" }}>
-                            <div title={path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column" }}>
+                        <div key={path + "/" + i} style={{ display: "flex", width: "100%" }}>
+                            <div title={path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                                 <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
                                     <span style={{ width: "min-content", transform: `translateX(${gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
-                                        <img src={foldState[path + "/" + i+dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
+                                        <img src={foldState[path + "/" + i + dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
                                         <DirImg></DirImg>
                                         {i}
                                     </span>
@@ -382,6 +521,8 @@ export default function Layout({ children, changeFocus }) {
 
     return (
         <div>
+
+            {/* 侧栏 */}
             <div className={style.leftBar} id="leftBar" style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
                 <div style={{ width: "100%", height: "20px", display: "flex", justifyContent: "flex-end" }}>
                     <img src="/FileImg/file.svg" width="15px" height="15px" alt="新增文件" className={style.choice} />
@@ -399,11 +540,26 @@ export default function Layout({ children, changeFocus }) {
                             </span>
                         </div>
                         <div className={`${style.border} ${style.heightTransition}`} style={{ width: "100%" }}>
-                            <div >{createFileDom('/', fileTree, 1)}</div>
+                            <div >{createFileDom('/', showedFile, 1)}</div>
                         </div>
                     </div>
                 </div>
 
+            </div>
+            {/* 侧栏底部 */}
+            <div>
+
+                <Button onClick={() => openDir()} size="large" loading={loading}
+                    icon={<FolderOpenTwoTone />}
+                    className={style.button_hover}
+                    style={{
+                        position: 'absolute', top: `${2 + leftBarDom.current?.getBoundingClientRect().height * 1}px`,
+                        left: `${0 + leftBarDom.current?.getBoundingClientRect().left * 1}px`,
+                        background: "linear-gradient(145deg, #d9d2d2, #fff9f9)",
+                        boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
+                    }}>
+
+                </Button>
             </div>
 
             {/* 顶栏 */}
