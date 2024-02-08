@@ -22,7 +22,7 @@ import { FolderOpenTwoTone, UndoOutlined, DeleteOutlined, FolderAddOutlined, Fil
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
 
-export default function Layout({ children}) {
+export default function Layout({ children }) {
     const store = useContext(Context)
 
     //配置暂时先写这
@@ -219,19 +219,8 @@ export default function Layout({ children}) {
         }
     }
     let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false) => {
-        store.dispatch({
-            type: 'currentFocus',
-            data: {
-                targetString: target
-            }
-        })
+
         if (!onlyHighLight && (new RegExp(dirSuffix).test(target) || target === '/')) {
-            store.dispatch({
-                type: 'currentFocus',
-                data: {
-                    type: "dir"
-                }
-            })
             setFoldState({ ...foldState, [target]: !foldState[target] })
             changeFoldState("inverse", target, !foldState[target])
         }
@@ -246,7 +235,8 @@ export default function Layout({ children}) {
                         store.dispatch({
                             type: 'currentFocus',
                             data: {
-                                type: "file"
+                                type: "file",
+                                targetString: target
                             }
                         })
                     }
@@ -401,20 +391,8 @@ export default function Layout({ children}) {
         setFoldState([])
         setShowedFile([])
         store.dispatch({
-            type: 'currentFocus',
-            data: {
-
-                dirRootHandle: null,
-                name: null,
-                path: [],
-                targetString: "",
-                type: "",
-                currentHandle: "",
-                wholePath: ""
-
-            }
+            type: 'clear'
         })
-
         setTopBar([])
     }
 

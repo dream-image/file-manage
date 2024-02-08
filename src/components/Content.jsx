@@ -4,7 +4,7 @@ import * as monaco from 'monaco-editor'
 import debounce from '../utils/debounce'
 
 export default function Content(props) {
-    console.log(props)
+    // console.log(props)
     const [text, setText] = useState("");
     let onChangeHandle = (value) => {
         setText(value);
@@ -33,14 +33,14 @@ export default function Content(props) {
         const timer = setTimeout(() => {
             let file = findFile(props)
             // console.log(file)
-            if (!file)
+            if (!file || !file.handle)
                 return
             instance = monaco.editor.create(monacoDom.current, {
                 value: file.copyContext,
                 language: file.type
             });
             instance.onDidChangeModelContent(debounce(() => {
-                console.log(instance.getValue());
+                // console.log(instance.getValue());
             }));
         }, 200); // 设置适当的延迟时间
 

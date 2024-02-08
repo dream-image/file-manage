@@ -11,12 +11,13 @@ let initial = {
         }
     },
     currentFocusContext: {
+        dirRootHandle: undefined,
         name: "",
         path: [],
-        type: '',
         targetString: "",
-        dirRootHandle: undefined,
+        type: "",
         currentHandle: undefined,
+        wholePath: ""
 
     }
 };
@@ -30,10 +31,30 @@ const reducer = (state = initial, action) => {
                 ...action.data
             }
             break;
-        case "currentFocus":{
+        case "currentFocus": {
             state.currentFocusContext = {
                 ...state.currentFocusContext,
                 ...action.data
+            }
+        }
+            break;
+        case "clear": {
+            state.currentFocusContext = {
+                dirRootHandle: undefined,
+                name: "",
+                path: [],
+                targetString: "",
+                type: "",
+                currentHandle: undefined,
+                wholePath: ""
+            }
+            state.openedFileContext = {
+                '': {
+                    handle: null,
+                    copyContext: '',
+                    hasChange: false,
+                    type: ''
+                }
             }
         }
         default:
