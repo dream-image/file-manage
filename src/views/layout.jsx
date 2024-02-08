@@ -7,6 +7,7 @@ import rightArrow from "/right1.svg"
 import downArrow from "/down1.svg"
 import DirImg from "../components/DirImg"
 import FileImg from "../components/FileImg"
+import CloseDir from "../components/CloseDir"
 import OpenFile from "/OpenFile.svg"
 import { useEffect } from "react"
 import 'animate.css';
@@ -152,6 +153,8 @@ export default function Layout({ children, changeFocus }) {
     let initDomRefs = (path, node, Refs) => {
         //将文件树映射成Dom树
         path = path === '/' ? '' : path
+        if (node.length === 0)
+            return
         node.forEach(j => {
             Object.keys(j).forEach(i => {
                 if (j[i] instanceof Array) {
@@ -167,6 +170,7 @@ export default function Layout({ children, changeFocus }) {
         })
     }
     initDomRefs('/', showedFile, Refs)
+    // console.log(Refs)
     // console.log(Object.getOwnPropertyNames(Refs.current))
     //复杂的修改折叠状态时的副作用处理
     function changeFoldState(model, target = "", value) {
@@ -233,17 +237,16 @@ export default function Layout({ children, changeFocus }) {
         let activeColor = rootStyle.getPropertyValue('--left-bar-active-color')
         // console.log(target)
         // console.log(Refs.current)
-        if (!onlyHighLight && new RegExp(dirSuffix).test(target)) {
+        if (!onlyHighLight && (new RegExp(dirSuffix).test(target) || target === '/')) {
             setFoldState({ ...foldState, [target]: !foldState[target] })
             changeFoldState("inverse", target, !foldState[target])
         }
         // console.log(Refs.current[target])
         setTimeout(() => {
             Object.keys(Refs.current).forEach(i => {
-                // console.log(Refs.current)
-                // console.log(i)
-                // console.log(Refs.current[i])
-                Refs.current[i].current.style.backgroundColor = defaultColor
+
+                if (Refs.current[i].current)
+                    Refs.current[i].current.style.backgroundColor = defaultColor
                 if (i === target) {
                     Refs.current[i].current.style.backgroundColor = activeColor
                     // let index=i.lastIndexOf('\/')
@@ -301,6 +304,7 @@ export default function Layout({ children, changeFocus }) {
         try {
             if (!handle) {
                 handle = await showDirectoryPicker()
+
                 setCurrentDirHandle(handle)
             }
 
@@ -334,6 +338,8 @@ export default function Layout({ children, changeFocus }) {
             tree.sort(sort)
             // console.log(tree)
             console.log("文件读取完毕")
+            Refs.current = {}
+            Refs.current['/'] = React.createRef()
             initDomRefs('/', tree, Refs)
             setFileTree(tree)
             setFoldState(initFoldState(tree))
@@ -344,6 +350,16 @@ export default function Layout({ children, changeFocus }) {
             // console.log("")
         }
 
+    }
+    // 关闭当前打开文件夹
+    let closeDir = () => {
+        setCurrentDirHandle(null)
+        setIsOpen(false)
+        Refs.current = {}
+        Refs.current['/'] = React.createRef()
+        setFileTree([])
+        setFoldState([])
+        setShowedFile([])
     }
 
     //打开文件
@@ -495,7 +511,7 @@ export default function Layout({ children, changeFocus }) {
                     return (
                         <div key={path + "/" + i}>
                             {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
-                            <div title={!path ? i : path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path }) }}>
+                            <div title={!path ?currentDirHandle.name+"/"+ i : currentDirHandle.name+path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path }) }}>
                                 {/* {console.log(Refs.current)} */}
                                 <span style={{ width: "90%", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
                                     <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
@@ -505,7 +521,7 @@ export default function Layout({ children, changeFocus }) {
                 } else {
                     return (
                         <div key={path + "/" + i} style={{ display: "flex", width: "100%" }}>
-                            <div title={path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                            <div title={currentDirHandle.name+path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                                 <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
                                     <span style={{ width: "min-content", transform: `translateX(${gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
                                         <img src={foldState[path + "/" + i + dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
@@ -538,26 +554,27 @@ export default function Layout({ children, changeFocus }) {
                     <Button size="small" icon={<DeleteOutlined />} src="/delete.svg" alt="删除" className={style.choice} />
                     <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => openDir(currentDirHandle)} />
                 </div>
-                <div style={{ display: "flex" }} className="dir-wrapper">
-                    <div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
+                <div style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
+                    {currentDirHandle ? (<div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
                         <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current["/"]} onClick={() => changeChosenBackgroundColorAndFoldState('/')}>
-                            <span style={{ width: "min-content", display: "flex", flexDirection: "row", alignItems: "center" }}>
+                            <span style={{ width: "90%", display: "flex", flexDirection: "row", alignItems: "center",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
                                 <img src={foldState['/'] ? downArrow : rightArrow} alt="箭头" className={style.label} />
+
                                 <DirImg></DirImg>
-                                /
+                                {currentDirHandle.name}
                             </span>
                         </div>
                         <div className={`${style.border} ${style.heightTransition}`} style={{ width: "100%" }}>
                             <div >{createFileDom('/', showedFile, 1)}</div>
                         </div>
-                    </div>
+                    </div>) : null}
                 </div>
 
             </div>
             {/* 侧栏底部 */}
             <div>
 
-                <Button onClick={() => openDir()} size="large" loading={loading} disabled={isOpen}
+                {!isOpen ? (<Button onClick={() => openDir()} size="large" loading={loading}
                     icon={<FolderOpenTwoTone />}
                     className={style.button_hover}
                     style={{
@@ -567,7 +584,18 @@ export default function Layout({ children, changeFocus }) {
                         boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
                     }}>
 
-                </Button>
+                </Button>) : (<Button onClick={() => closeDir()} size="large"
+                    icon={<CloseDir />}
+                    className={style.button_hover}
+                    style={{
+                        position: 'absolute', top: `${2 + leftBarDom.current?.getBoundingClientRect().height * 1}px`,
+                        left: `${0 + leftBarDom.current?.getBoundingClientRect().left * 1}px`,
+                        background: "linear-gradient(145deg, #d9d2d2, #fff9f9)",
+                        boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
+                    }}>
+
+                </Button>)}
+
             </div>
 
             {/* 顶栏 */}
@@ -580,7 +608,7 @@ export default function Layout({ children, changeFocus }) {
 
                     topBar.map((item) => {
                         return (
-                            <div key={item.path + '/' + item.name} title={item.path + '/' + item.name} className={`${style.filelabel} ${item.active ? style.active : null}  animate__animated animate__bounce  animate__fadeInBottomLeft animate__faster  `}
+                            <div key={item.path + '/' + item.name} title={currentDirHandle.name+item.path + '/' + item.name} className={`${style.filelabel} ${item.active ? style.active : null}  animate__animated animate__bounce  animate__fadeInBottomLeft animate__faster  `}
                                 style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap" }} onClick={() => showFile({ name: item.name, path: item.path })}>
                                 <FileImg fileType={item.name.split(".")[item.name.split(".").length - 1]}></FileImg>
                                 <span style={{ width: "96px", textOverflow: "ellipsis", overflow: "hidden" }}> {item.name} </span>
