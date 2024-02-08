@@ -103,7 +103,7 @@ export default function Layout({ children, changeFocus }) {
         }
     }
     const [topBar, setTopBar] = useState([])
-
+    const handleList=useRef({})
     const [foldState, setFoldState] = useState({})
     //左侧导航栏文件夹打开状态树
     // const [oldFoldState, setOldFoldState] = useState({})
@@ -303,7 +303,25 @@ export default function Layout({ children, changeFocus }) {
         }, 100)
     }
 
-
+    function findHandle(wholePath) {
+        let path=wholePath.split('/')
+        path.shift()
+        path[path.length-1] = path[path.length-1].split('#')[0]
+        function find(path,handle,index){
+            if(handle.kind==='file'){
+                return handle
+            }
+            if(path.length==index-1){
+                return handle
+            }
+            for(let i of handle.children){
+                if(i.name===path[index]){
+                    return find(path,i,index+1)
+                }
+            }
+        }
+        return find(path,currentDirHandle,0)
+    }
 
     //本地读取文件夹
     let openDir = async (handle) => {
@@ -407,14 +425,13 @@ export default function Layout({ children, changeFocus }) {
                 name: target.name,
                 path: target.path,
                 active: true,
-
             }])
-            let path = target.path.split("/")
-            path.shift()
-            function findHandle(handle, path, index) {
+            // console.log(target.wholePath)
+            let handle=findHandle(target.wholePath)
+            console.log(handle)
+            // handleList.current[target.path]={
 
-            }
-
+            // }
         }
         else {
             list[index].active = true
@@ -548,7 +565,7 @@ export default function Layout({ children, changeFocus }) {
                     return (
                         <div key={path + "/" + i}>
                             {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
-                            <div title={!path ? currentDirHandle.name + "/" + i : currentDirHandle.name + path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path }) }}>
+                            <div title={!path ? currentDirHandle.name + "/" + i : currentDirHandle.name + path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path,wholePath:path + "/" + i + fileSuffix }) }}>
                                 {/* {console.log(Refs.current)} */}
                                 <span style={{ width: "90%", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
                                     <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
