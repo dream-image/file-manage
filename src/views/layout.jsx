@@ -13,7 +13,7 @@ import { useEffect } from "react"
 import 'animate.css';
 import { flushSync } from "react-dom"
 import { useContext } from "react"
-import { CurrentFocusContext } from '../contexts/currentFocusContext'
+import Context from "../contexts/Context"
 import { copy } from "../utils/copyObject"
 import { handlePropertyName } from "../utils/symbols"
 import { Button } from 'antd'
@@ -22,8 +22,9 @@ import { FolderOpenTwoTone, UndoOutlined, DeleteOutlined, FolderAddOutlined, Fil
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
 
-export default function Layout({ children, changeFocus }) {
-    const CurrentFocus = useContext(CurrentFocusContext)
+export default function Layout({ children}) {
+    const store = useContext(Context)
+
     //配置暂时先写这
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
     let [gap, setGap] = useState(5) //文件夹首与其子目录首的距离
@@ -103,7 +104,7 @@ export default function Layout({ children, changeFocus }) {
         }
     }
     const [topBar, setTopBar] = useState([])
-    const handleList=useRef({})
+
     const [foldState, setFoldState] = useState({})
     //左侧导航栏文件夹打开状态树
     // const [oldFoldState, setOldFoldState] = useState({})
@@ -218,43 +219,36 @@ export default function Layout({ children, changeFocus }) {
         }
     }
     let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false) => {
-        // console.log(target)
-        let rootStyle = getComputedStyle(document.documentElement)
-        let defaultColor = rootStyle.getPropertyValue('--default-background-color')
-        let activeColor = rootStyle.getPropertyValue('--left-bar-active-color')
-        // console.log(target)
-        // console.log(Refs.current)
-        CurrentFocus.targetString = target
-        if (!onlyHighLight && (new RegExp(dirSuffix).test(target) || target === '/')) {
-            CurrentFocus.type = "dir"
-            if (target === '/') {
-                CurrentFocus.path = ['/']
-                CurrentFocus.name = ['/']
-            } else {
-                let path = target.split('/')
-                path.shift()
-                path.push(path.pop().split(dirSuffix)[0])
-                CurrentFocus.path = Array.from(path)
-                CurrentFocus.name = path[path.length - 1]
+        store.dispatch({
+            type: 'currentFocus',
+            data: {
+                targetString: target
             }
+        })
+        if (!onlyHighLight && (new RegExp(dirSuffix).test(target) || target === '/')) {
+            store.dispatch({
+                type: 'currentFocus',
+                data: {
+                    type: "dir"
+                }
+            })
             setFoldState({ ...foldState, [target]: !foldState[target] })
             changeFoldState("inverse", target, !foldState[target])
         }
-        // console.log(Refs.current[target])
         setTimeout(() => {
             Object.keys(Refs.current).forEach(i => {
 
                 if (Refs.current[i].current)
-                    Refs.current[i].current.style.backgroundColor = defaultColor
+                    Refs.current[i].current.ClassName = `${style.dir}`
                 if (i === target) {
-                    Refs.current[i].current.style.backgroundColor = activeColor
+                    Refs.current[i].current.ClassName = `${style.dir} ${style.dir_active}`
                     if (new RegExp(fileSuffix).test(target)) {
-                        let path = target.split('/')
-                        path.shift()
-                        path.push(path.pop().split(fileSuffix)[0])
-                        CurrentFocus.path = Array.from(path)
-                        CurrentFocus.name = path[path.length - 1]
-                        CurrentFocus.type = "file"
+                        store.dispatch({
+                            type: 'currentFocus',
+                            data: {
+                                type: "file"
+                            }
+                        })
                     }
 
                     // let index=i.lastIndexOf('\/')
@@ -304,23 +298,23 @@ export default function Layout({ children, changeFocus }) {
     }
 
     function findHandle(wholePath) {
-        let path=wholePath.split('/')
+        let path = wholePath.split('/')
         path.shift()
-        path[path.length-1] = path[path.length-1].split('#')[0]
-        function find(path,handle,index){
-            if(handle.kind==='file'){
+        path[path.length - 1] = path[path.length - 1].split('#')[0]
+        function find(path, handle, index) {
+            if (handle.kind === 'file') {
                 return handle
             }
-            if(path.length==index-1){
+            if (path.length == index - 1) {
                 return handle
             }
-            for(let i of handle.children){
-                if(i.name===path[index]){
-                    return find(path,i,index+1)
+            for (let i of handle.children) {
+                if (i.name === path[index]) {
+                    return find(path, i, index + 1)
                 }
             }
         }
-        return find(path,currentDirHandle,0)
+        return find(path, currentDirHandle, 0)
     }
 
     //本地读取文件夹
@@ -330,10 +324,8 @@ export default function Layout({ children, changeFocus }) {
                 handle = await showDirectoryPicker()
             }
 
-            // console.log(handle)
             let tree = []
             async function processHandle(handle, node) {
-                // console.log(node)
                 if (handle.kind === 'file') {
                     node.push({ [handle.name]: "file" })
                     return handle
@@ -367,8 +359,13 @@ export default function Layout({ children, changeFocus }) {
                 }
             })
             // console.log(obj)
+            store.dispatch({
+                type: 'currentFocus',
+                data: {
+                    dirRootHandle: rootHandle
+                }
+            })
 
-            CurrentFocus.dirRootHandle = rootHandle
             setCurrentDirHandle(rootHandle)
             setLoading(false)
             setIsOpen(true)
@@ -392,26 +389,37 @@ export default function Layout({ children, changeFocus }) {
 
     }
     // 关闭当前打开文件夹
-    let closeDir = () => {
-        setCurrentDirHandle(null)
+    let closeDir = (refresh) => {
+        if (!refresh) {
+            setCurrentDirHandle(null)
+        }
+
         setIsOpen(false)
         Refs.current = {}
         Refs.current['/'] = React.createRef()
         setFileTree([])
         setFoldState([])
         setShowedFile([])
-        CurrentFocus.dirRootHandle = null
-        CurrentFocus.name = null
-        CurrentFocus.path = []
-        CurrentFocus.targetString = ""
-        CurrentFocus.type = ""
+        store.dispatch({
+            type: 'currentFocus',
+            data: {
+
+                dirRootHandle: null,
+                name: null,
+                path: [],
+                targetString: "",
+                type: "",
+                currentHandle: "",
+                wholePath: ""
+
+            }
+        })
+
         setTopBar([])
     }
 
     //打开文件
-    let openFile = (target) => {
-
-
+    let openFile = async (target) => {
         let index = topBar.findIndex((i) => {
             return i.name == target.name && i.path == target.path
         })
@@ -420,6 +428,7 @@ export default function Layout({ children, changeFocus }) {
         list.forEach(i => {
             i.active = false
         })
+        let handle = findHandle(target.wholePath)
         if (index == -1) {
             setTopBar([...list, {
                 name: target.name,
@@ -427,16 +436,50 @@ export default function Layout({ children, changeFocus }) {
                 active: true,
             }])
             // console.log(target.wholePath)
-            let handle=findHandle(target.wholePath)
-            console.log(handle)
-            // handleList.current[target.path]={
 
-            // }
+            // console.log(handle)
+            let file = await handle.getFile()
+            const reader = new FileReader()
+
+            reader.onload = (e) => {
+                // console.log(e.target.result)
+                let type = file.type.split("/")
+                type = type[type.length - 1]
+                store.dispatch({
+                    type: 'openedFile',
+                    data: {
+                        [target.wholePath]: {
+                            handle: handle,
+                            hasChange: false,
+                            copyContext: e.target.result,
+                            type: type
+                        }
+                    }
+                })
+                store.dispatch({
+                    type: 'currentFocus',
+                    data: {
+                        currentHandle: handle,
+                        targetString: target.wholePath
+                    }
+                })
+
+            }
+            reader.readAsText(file, 'utf-8')
         }
         else {
             list[index].active = true
             setTopBar([...list])
+            store.dispatch({
+                type: 'currentFocus',
+                data: {
+                    currentHandle: handle,
+                    targetString: target.wholePath
+                }
+            })
         }
+
+        // console.log(handle, target.wholePath)
 
     }
 
@@ -497,6 +540,15 @@ export default function Layout({ children, changeFocus }) {
         a = parentPath(a)
         // console.log(a)
         // console.log(foldState)
+        let handle = findHandle(target.wholePath)
+        store.dispatch({
+            type: 'currentFocus',
+            data: {
+                currentHandle: handle,
+                targetString: target.wholePath
+            }
+        })
+
         for (let i of a) {
             // console.log(i)
             if (!foldState[i + dirSuffix]) {
@@ -565,7 +617,8 @@ export default function Layout({ children, changeFocus }) {
                     return (
                         <div key={path + "/" + i}>
                             {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
-                            <div title={!path ? currentDirHandle.name + "/" + i : currentDirHandle.name + path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]} onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path,wholePath:path + "/" + i + fileSuffix }) }}>
+                            <div title={!path ? currentDirHandle.name + "/" + i : currentDirHandle.name + path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]}
+                                onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path, wholePath: path + "/" + i + fileSuffix }) }}>
                                 {/* {console.log(Refs.current)} */}
                                 <span style={{ width: "90%", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
                                     <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
@@ -605,7 +658,7 @@ export default function Layout({ children, changeFocus }) {
                     <Button size="small" icon={<FolderAddOutlined />} src="/FileImg/file.svg" alt="新增文件" className={style.choice} />
                     <Button size="small" icon={<FileAddOutlined />} src="/dir.svg" alt="新增文件夹" className={style.choice} />
                     <Button size="small" icon={<DeleteOutlined />} src="/delete.svg" alt="删除" className={style.choice} />
-                    <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => openDir(currentDirHandle)} />
+                    <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => { closeDir(true); openDir(currentDirHandle) }} />
                 </div>
                 <div style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
                     {currentDirHandle ? (<div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
@@ -637,7 +690,7 @@ export default function Layout({ children, changeFocus }) {
                         boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
                     }}>
 
-                </Button>) : (<Button onClick={() => closeDir()} size="large"
+                </Button>) : (<Button onClick={() => closeDir(false)} size="large"
                     icon={<CloseDir />}
                     className={style.button_hover}
                     style={{
@@ -662,7 +715,7 @@ export default function Layout({ children, changeFocus }) {
                     topBar.map((item) => {
                         return (
                             <div key={item.path + '/' + item.name} title={currentDirHandle.name + item.path + '/' + item.name} className={`${style.filelabel} ${item.active ? style.active : null}  animate__animated animate__bounce  animate__fadeInBottomLeft animate__faster  `}
-                                style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap" }} onClick={() => showFile({ name: item.name, path: item.path })}>
+                                style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap" }} onClick={() => showFile({ name: item.name, path: item.path, wholePath: item.path + '/' + item.name + fileSuffix })}>
                                 <FileImg fileType={item.name.split(".")[item.name.split(".").length - 1]}></FileImg>
                                 <span style={{ width: "96px", textOverflow: "ellipsis", overflow: "hidden" }}> {item.name} </span>
                                 <img src="/remove.svg" alt="关闭" style={{ position: "absolute", right: "0", width: "20px", zIndex: "1" }} onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name }, e) }} />

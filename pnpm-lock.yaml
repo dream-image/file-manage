@@ -26,6 +26,9 @@ dependencies:
   react-monaco-editor:
     specifier: ^0.55.0
     version: 0.55.0(@types/react@18.2.48)(monaco-editor@0.45.0)(react@18.2.0)
+  redux:
+    specifier: ^5.0.1
+    version: 5.0.1
 
 devDependencies:
   '@types/react':
@@ -2541,6 +2544,10 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
+    dev: false
+
+  /redux@5.0.1:
+    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
     dev: false
 
   /reflect.getprototypeof@1.0.4:

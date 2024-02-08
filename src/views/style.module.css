@@ -52,7 +52,12 @@
 .dir:hover {
     background-color: var(--hover-color);
 }
-
+.dir_active{
+    background-color: var(--left-bar-active-color);
+}
+.file_active{
+    background-color: var(--active-color);
+}
 .leftBar div:first-child img:last-child {
     margin-right: 5px;
 }

@@ -4,6 +4,7 @@ import * as monaco from 'monaco-editor'
 import debounce from '../utils/debounce'
 
 export default function Content(props) {
+    console.log(props)
     const [text, setText] = useState("");
     let onChangeHandle = (value) => {
         setText(value);
@@ -16,21 +17,27 @@ export default function Content(props) {
         if (instance)
             instance.layout()
     }, 100))
+    function findFile(props) {
+        
+        return props.openedFileList[props.currentFocus.targetString]
+    }
     //原生用法
     let instance
     useEffect(() => {
         ob.observe(document.body)
-        let leftBar=document.getElementById("leftBar")
+        let leftBar = document.getElementById("leftBar")
         // console.log(leftBar)
-        if(leftBar)
+        if (leftBar)
             ob.observe(leftBar)
         // 使用定时器延迟初始化
         const timer = setTimeout(() => {
+            let file = findFile(props)
+            // console.log(file)
+            if (!file)
+                return
             instance = monaco.editor.create(monacoDom.current, {
-                value: `这是测试
-console.log("Hello, world")
-`,
-                language: 'javascript'
+                value: file.copyContext,
+                language: file.type
             });
             instance.onDidChangeModelContent(debounce(() => {
                 console.log(instance.getValue());
@@ -45,7 +52,7 @@ console.log("Hello, world")
             }
             ob.disconnect()
         };
-    }, []);
+    }, [props.currentFocus]);
 
     return (
         <div id="monaco" style={{ height: "100%", width: "100%" }} ref={monacoDom}>

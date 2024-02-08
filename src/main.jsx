@@ -5,34 +5,33 @@ import Layout from './views/layout.jsx'
 // import './index.css'
 import { createContext } from 'react'
 import { useState } from 'react'
-import { CurrentFocusContext } from './contexts/currentFocusContext.js'
-
+import Context from "./contexts/Context.js"
 import { ConfigProvider } from 'antd'
 const ThemeContext = createContext('light')
 
-
+import store from './store'
 
 const Main = (props) => {
-  const [focus, setFocus] = useState({
-    name: null,
-    path: '/',
-    type: 'dir'
-  })
+
   return (
     <ConfigProvider theme={{
       components: {
         Button: {
           defaultActiveBorderColor: "#4fc3f7",
-          defaultHoverBorderColor:"#71c4ef",
-          defaultBorderColor:"#eceff1"
+          defaultHoverBorderColor: "#71c4ef",
+          defaultBorderColor: "#eceff1"
         },
       },
     }}>
-      <CurrentFocusContext.Provider value={focus} >
-        <Layout changeFocus={setFocus}>
+      <Context.Provider value={store}>
+        <Layout  >
           <App />
         </Layout>
-      </CurrentFocusContext.Provider>
+
+      </Context.Provider>
+
+
+
     </ConfigProvider>
 
   )

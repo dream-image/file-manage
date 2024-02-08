@@ -1,9 +1,10 @@
 import { createContext } from 'react'
 export const CurrentFocusContext = createContext({
-  name: null,
+  name: "",
   path: [],
   type: '',
   targetString:"",
-  dirRootHandle:null,
-
+  dirRootHandle:undefined,
+  currentHandle:undefined,
+  
 })
