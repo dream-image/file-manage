@@ -39,13 +39,13 @@ export default function Content(props) {
         let saveEvent = (event) => {
             
             if (event.ctrlKey && event.key === 's') {
-                console.log('count')
+                // console.log('count')
                 event.preventDefault();
                 let content = instance.getValue()
                 try {
                     (async () => {
                         let writable = await props.currentFocus.currentHandle.createWritable();
-                        console.log(props.currentFocus.currentHandle)
+                        // console.log(props.currentFocus.currentHandle)
                         await writable.write(content);
                         await writable.close()
                         props.store.dispatch({
@@ -77,6 +77,7 @@ export default function Content(props) {
             // console.log(file)
             if (!file || !file.handle)
                 return
+            console.log(file.type)
             instance = monaco.editor.create(monacoDom.current, {
                 value: file.copyContext,
                 language: file.type

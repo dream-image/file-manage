@@ -237,9 +237,10 @@ export default function Layout({ children }) {
             Object.keys(Refs.current).forEach(i => {
 
                 if (Refs.current[i].current)
-                    Refs.current[i].current.ClassName = `${style.dir}`
+                    Refs.current[i].current.className = `${style.dir}`
                 if (i === target) {
-                    Refs.current[i].current.ClassName = `${style.dir} ${style.dir_active}`
+
+                    Refs.current[i].current.className = `${style.dir} ${style.dir_active}`
                     if (new RegExp(fileSuffix).test(target)) {
                         store.dispatch({
                             type: 'currentFocus',
@@ -480,6 +481,7 @@ export default function Layout({ children }) {
     //关闭文件
     let sign = useRef()
     let closeFile = async (target, e) => {
+        console.log(target)
         // console.log("关闭")
         sign.current = ''
         let save = () => {
@@ -511,44 +513,44 @@ export default function Layout({ children }) {
         //将文件从topbar移除
         let handle = () => {
             let index = topBar.findIndex((i) => {
-                return i.name == target.name && i.path == target.path && i?.active
+                return i.name == target.name && i.path == target.path
             })
             e.target.parentNode.className += "animate__fadeOutBottomLeft"
 
 
             setTimeout(() => {
                 let list = copy(topBar)
-                if (index >= 0) {
-
-                    list[index].active = false
-                    console.log(index)
-                    if (index > 0)
-                        list[index - 1].active = true
-                    else {
-                        if (list[1])
-                            list[1].active = true
-                    }
-                    // console.log(list)
-                    setTopBar([...list])
-                    //接下来还需要展示前一个文件内容
-                    //xxxx
-                    store.dispatch({
-                        type: "currentFocus",
-                        data: {
-                            targetString: index == 0 ? list[1] ? list[1].wholePath : "" : list[index - 1].wholePath,
-                            type: "file"
-                        }
-                    })
-                    store.dispatch({
-                        type: "closeFile",
-                        wholePath: target.wholePath
-                    })
-                    // flushSync()
+                // console.log(index)
+                // console.log(list)
+                list[index].active = false
+                // console.log(index)
+                if (index > 0)
+                    list[index - 1].active = true
+                else {
+                    if (list[1])
+                        list[1].active = true
                 }
+
                 list.splice(index, 1)
                 console.log(list)
                 if (index != -1)
                     setTopBar([...list])
+
+                //接下来还需要展示前一个文件内容
+                //xxxx
+                store.dispatch({
+                    type: "currentFocus",
+                    data: {
+                        targetString: index == 0 ? list[1] ? list[1].wholePath : "" : list[index - 1].wholePath,
+                        type: "file"
+                    }
+                })
+                store.dispatch({
+                    type: "closeFile",
+                    wholePath: target.wholePath
+                })
+                // flushSync()
+
             }, 300);
         }
         let fileContext = state.openedFileContext[state.currentFocusContext.targetString]
@@ -686,7 +688,8 @@ export default function Layout({ children }) {
                     return (
                         <div key={path + "/" + i}>
                             {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
-                            <div title={!path ? currentDirHandle.name + "/" + i : currentDirHandle.name + path + "/" + i} className={`${style.border} ${style.file}`} style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]}
+                            <div title={!path ? currentDirHandle.name + "/" + i : currentDirHandle.name + path + "/" + i} className={`${style.border} ${style.file}`}
+                                style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]}
                                 onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path, wholePath: path + "/" + i + fileSuffix }) }}>
                                 {/* {console.log(Refs.current)} */}
                                 <span style={{ width: "90%", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
@@ -800,23 +803,31 @@ export default function Layout({ children }) {
 
                     topBar.map((item) => {
                         return (
-                            <div key={item.path + '/' + item.name} title={currentDirHandle.name + item.path + '/' + item.name} className={`${style.filelabel} ${item.active ? style.active : null}  animate__animated animate__bounce  animate__fadeInBottomLeft animate__faster  `}
-                                style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap" }} onClick={() => showFile({ name: item.name, path: item.path, wholePath: item.path + '/' + item.name + fileSuffix })}>
+                            <div key={item.path + '/' + item.name} title={currentDirHandle.name + item.path + '/' + item.name}
+                                className={`${style.filelabel} ${item.active ? style.active : null}  animate__animated animate__bounce  animate__fadeInBottomLeft animate__faster  `}
+                                style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap" }}
+                                onClick={() => showFile({ name: item.name, path: item.path, wholePath: item.path + '/' + item.name + fileSuffix })}>
                                 <FileImg fileType={item.name.split(".")[item.name.split(".").length - 1]}></FileImg>
                                 <span style={{ width: "96px", textOverflow: "ellipsis", overflow: "hidden" }}> {item.name} </span>
                                 {(() => {
                                     let file = findFile(item.path + '/' + item.name + fileSuffix)
                                     if (file && file.hasChange) {
-                                        return <Dot className={`${style.close_img_hover}`} style={{ position: "absolute", right: "2px", width: "20px", zIndex: "1", borderRadius: "20%" }} onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name, wholePath: item.path + '/' + item.name + fileSuffix }, e) }}></Dot>
+                                        return <Dot className={`${style.close_img_hover}`} style={{
+                                            position: "absolute", right: "2px", width: "20px", zIndex: "1",
+                                            borderRadius: "20%"
+                                        }} onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name, wholePath: item.path + '/' + item.name + fileSuffix }, e) }}></Dot>
                                     }
-                                    return <img className={`${style.close_img_hover}`} src="/remove.svg" alt="关闭" style={{ position: "absolute", right: "2px", width: "20px", zIndex: "1", borderRadius: "20%" }} onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name, wholePath: item.path + '/' + item.name + fileSuffix }, e) }} />
+                                    return <img className={`${style.close_img_hover}`} src="/remove.svg" alt="关闭"
+                                        style={{ position: "absolute", right: "2px", width: "20px", zIndex: "1", borderRadius: "20%" }}
+                                        onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name, wholePath: item.path + '/' + item.name + fileSuffix }, e) }} />
                                 })()}
 
                             </div>
                         )
                     })
                 }
-                {/* <div className={style.filelabel} style={{ display: "flex", alignItems: "center",position:"relative",whiteSpace:"nowrap" }}><FileImg fileType="js" ></FileImg><span style={{width:"96px",textOverflow:"ellipsis",overflow:"hidden"}}>文件142141241241 </span> <img src="/remove.svg" alt="删除"  style={{position:"absolute",right:"0",width:"20px"}} /></div>
+                {/* <div className={style.filelabel} style={{ display: "flex", alignItems: "center",position:"relative",whiteSpace:"nowrap" }}><FileImg fileType="js" >
+                </FileImg><span style={{width:"96px",textOverflow:"ellipsis",overflow:"hidden"}}>文件142141241241 </span> <img src="/remove.svg" alt="删除"  style={{position:"absolute",right:"0",width:"20px"}} /></div>
                 <div className={style.filelabel} style={{ display: "flex", alignItems: "center" }}><FileImg></FileImg>文件2</div> */}
             </div>
             <div className={style.main_body} style={{
