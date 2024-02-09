@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react"
 import style from "./style.module.css"
 
 import style_from_demo from '../index.module.css'
-
+import debounce from "../utils/debounce"
 import rightArrow from "/right1.svg"
 import downArrow from "/down1.svg"
 import DirImg from "../components/DirImg"
@@ -720,7 +720,17 @@ export default function Layout({ children }) {
 
         })
     }
+    let [viewWidth, setViewWidth] = useState(leftBarWidth)
+    const ob = new ResizeObserver(debounce((entries) => {
+        setViewWidth(document.body.getBoundingClientRect().width)
+    }, 100))
 
+    useEffect(() => {
+        ob.observe(document.body)
+        return () => {
+            ob.disconnect()
+        }
+    }, [])
     return (
         <div>
             {/* 全局消息确认框 */}
@@ -796,8 +806,8 @@ export default function Layout({ children }) {
             {/* 顶栏 */}
             <div className={`top-wrapper ${style.top_bar}`} ref={topBarDom} style={{
                 position: "absolute", display: "flex", left: `${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 1}px`,
-                top: "0", fontSize: "14px", fontFamily: "Consolas, 'Courier New', monospace", height: "26px"
-                , width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`
+                top: "0", fontSize: "14px", fontFamily: "Consolas, 'Courier New', monospace", height: `${topBar.length != 0 ? Math.ceil(topBar.length / Math.floor((viewWidth - leftBarDom.current?.getBoundingClientRect().width) / 140)) * 27 : 27}px`
+                , width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`, flexFlow: "wrap",
             }}>
                 {
 
@@ -805,7 +815,7 @@ export default function Layout({ children }) {
                         return (
                             <div key={item.path + '/' + item.name} title={currentDirHandle.name + item.path + '/' + item.name}
                                 className={`${style.filelabel} ${item.active ? style.active : null}  animate__animated animate__bounce  animate__fadeInBottomLeft animate__faster  `}
-                                style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap" }}
+                                style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap", height: "25px" }}
                                 onClick={() => showFile({ name: item.name, path: item.path, wholePath: item.path + '/' + item.name + fileSuffix })}>
                                 <FileImg fileType={item.name.split(".")[item.name.split(".").length - 1]}></FileImg>
                                 <span style={{ width: "96px", textOverflow: "ellipsis", overflow: "hidden" }}> {item.name} </span>
@@ -831,8 +841,8 @@ export default function Layout({ children }) {
                 <div className={style.filelabel} style={{ display: "flex", alignItems: "center" }}><FileImg></FileImg>文件2</div> */}
             </div>
             <div className={style.main_body} style={{
-                position: "absolute", left: `${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 1}px`, top: `${topBarDom.current?.style.height}`,
-                height: `calc(100vh - ${0 + topBarDom.current?.style.height.split("px")[0] * 2}px)`, width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`,
+                position: "absolute", left: `${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 1}px`, top: `${topBarDom.current?.getBoundingClientRect().height}px`,
+                height: `calc(100vh - ${10 + topBarDom.current?.getBoundingClientRect().height }px)`, width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`,
             }} >
                 {children}
             </div>
