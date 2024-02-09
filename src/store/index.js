@@ -6,6 +6,7 @@ let initial = {
         '': {
             handle: null,
             copyContext: '',
+            originContext: '',
             hasChange: false,
             type: ''
         }
@@ -17,7 +18,6 @@ let initial = {
         targetString: "",
         type: "",
         currentHandle: undefined,
-        wholePath: ""
 
     }
 };
@@ -38,6 +38,10 @@ const reducer = (state = initial, action) => {
             }
         }
             break;
+        case "closeFile":{
+            delete state.openedFileContext[action.wholePath]
+        }
+        break;
         case "clear": {
             state.currentFocusContext = {
                 dirRootHandle: undefined,

@@ -15,7 +15,7 @@ function App() {
     }
   }, [])
   return (
-    <Content openedFileList={state.openedFileContext} currentFocus={state.currentFocusContext}></Content>
+    <Content openedFileList={state.openedFileContext} currentFocus={state.currentFocusContext} store={store}></Content>
   )
 }
 

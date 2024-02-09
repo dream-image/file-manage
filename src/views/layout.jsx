@@ -8,7 +8,7 @@ import downArrow from "/down1.svg"
 import DirImg from "../components/DirImg"
 import FileImg from "../components/FileImg"
 import CloseDir from "../components/CloseDir"
-import OpenFile from "/OpenFile.svg"
+import Dot from "../components/Dot"
 import { useEffect } from "react"
 import 'animate.css';
 import { flushSync } from "react-dom"
@@ -16,7 +16,7 @@ import { useContext } from "react"
 import Context from "../contexts/Context"
 import { copy } from "../utils/copyObject"
 import { handlePropertyName } from "../utils/symbols"
-import { Button } from 'antd'
+import { Button, notification, Space } from 'antd'
 import { FolderOpenTwoTone, UndoOutlined, DeleteOutlined, FolderAddOutlined, FileAddOutlined } from '@ant-design/icons'
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
@@ -24,7 +24,16 @@ const dirSuffix = '#dir'
 
 export default function Layout({ children }) {
     const store = useContext(Context)
+    const [state, setState] = useState(store.getState())
+    useEffect(() => {
 
+        let unsubscribe = store.subscribe(() => {
+            setState(store.getState())
+        })
+        return () => {
+            unsubscribe()
+        }
+    }, [])
     //配置暂时先写这
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
     let [gap, setGap] = useState(5) //文件夹首与其子目录首的距离
@@ -287,6 +296,10 @@ export default function Layout({ children }) {
         }, 100)
     }
 
+    function findFile(wholePath) {
+        let file = state.openedFileContext[wholePath]
+        return file ? file : null
+    }
     function findHandle(wholePath) {
         let path = wholePath.split('/')
         path.shift()
@@ -412,6 +425,7 @@ export default function Layout({ children }) {
                 name: target.name,
                 path: target.path,
                 active: true,
+                wholePath: target.wholePath
             }])
             // console.log(target.wholePath)
 
@@ -430,6 +444,7 @@ export default function Layout({ children }) {
                             handle: handle,
                             hasChange: false,
                             copyContext: e.target.result,
+                            originContext: e.target.result,
                             type: type
                         }
                     }
@@ -460,35 +475,111 @@ export default function Layout({ children }) {
         // console.log(handle, target.wholePath)
 
     }
+    const [globalMessageBox, setGlobalMessageBox] = useState(false)
 
     //关闭文件
-    let closeFile = (target, e) => {
+    let sign = useRef()
+    let closeFile = async (target, e) => {
         // console.log("关闭")
-        let index = topBar.findIndex((i) => {
-            return i.name == target.name && i.path == target.path && i?.active
-        })
-        if (index > 0) {
-            let list = copy(topBar)
-            list[index].active = false
-            list[index - 1].active = true
-            setTopBar(list)
-            //接下来还需要展示前一个文件内容
-            //xxxx
-
-
-            flushSync()
+        sign.current = ''
+        let save = () => {
+            try {
+                (async () => {
+                    let writable = await state.currentFocusContext.currentHandle.createWritable();
+                    console.log(state.currentFocusContext.currentHandle)
+                    await writable.write(fileContext.copyContext);
+                    await writable.close()
+                    store.dispatch({
+                        type: "openedFile",
+                        data: {
+                            [state.currentFocusContext.targetString]: {
+                                ...fileContext,
+                                hasChange: false,
+                                originContext: fileContext.copyContext
+                            }
+                        }
+                    })
+                })()
+            } catch (error) {
+                console.log(error)
+                message.open({
+                    type: 'error',
+                    content: "保存失败，请刷新页面再试"
+                })
+            }
         }
-        e.target.parentNode.className += "animate__fadeOutBottomLeft"
-        setTimeout(() => {
+        //将文件从topbar移除
+        let handle = () => {
             let index = topBar.findIndex((i) => {
-                return i.name == target.name && i.path == target.path
+                return i.name == target.name && i.path == target.path && i?.active
             })
-            let list = copy(topBar)
-            list.splice(index, 1)
-            if (index != -1)
-                setTopBar([...list])
-        }, 500);
+            e.target.parentNode.className += "animate__fadeOutBottomLeft"
 
+
+            setTimeout(() => {
+                let list = copy(topBar)
+                if (index >= 0) {
+
+                    list[index].active = false
+                    console.log(index)
+                    if (index > 0)
+                        list[index - 1].active = true
+                    else {
+                        if (list[1])
+                            list[1].active = true
+                    }
+                    // console.log(list)
+                    setTopBar([...list])
+                    //接下来还需要展示前一个文件内容
+                    //xxxx
+                    store.dispatch({
+                        type: "currentFocus",
+                        data: {
+                            targetString: index == 0 ? list[1] ? list[1].wholePath : "" : list[index - 1].wholePath,
+                            type: "file"
+                        }
+                    })
+                    store.dispatch({
+                        type: "closeFile",
+                        wholePath: target.wholePath
+                    })
+                    // flushSync()
+                }
+                list.splice(index, 1)
+                console.log(list)
+                if (index != -1)
+                    setTopBar([...list])
+            }, 300);
+        }
+        let fileContext = state.openedFileContext[state.currentFocusContext.targetString]
+
+        if (fileContext.hasChange) {
+            setGlobalMessageBox(true)
+            let result = await new Promise((resolve, reject) => {
+                let a = setInterval(() => {
+                    // console.log("循环中等待")
+                    if (sign.current == 'save') {
+                        save()
+                        clearInterval(a)
+                        resolve(true)
+                    }
+                    else if (sign.current == 'close') {
+                        clearInterval(a)
+                        resolve(true)
+                    }
+                    else if (sign.current == 'cancel') {
+                        clearInterval(a)
+                        resolve(false)
+                    }
+                }, 100);
+            })
+            // console.log(result)
+            if (result) {
+                handle()
+            }
+            return
+        }
+        handle()
     }
 
     //顶栏中选中文件
@@ -629,7 +720,24 @@ export default function Layout({ children }) {
 
     return (
         <div>
+            {/* 全局消息确认框 */}
+            {globalMessageBox ? (<div style={{ position: 'absolute', left: '0', top: "0", width: '100%', height: "100%", zIndex: 999, }}>
+                <div style={{
+                    left: 0, right: 0, top: 0, bottom: 0, margin: 'auto auto', position: 'absolute', width: "300px", height: "182px", backgroundColor: "white", borderRadius: "48px",
+                    border: "1px solid black",
+                    display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", zIndex: 1000,
+                    padding: "10px 30px"
+                }}>
+                    <div style={{ transform: "translateY(-30px)", fontSize: "30px", fontFamily: "楷书", fontWeight: 300, textAlign: "center" }} >文件已修改，是否保存?</div>
+                    <div style={{ display: "flex", justifyContent: "space-evenly", width: "100%" }}>
+                        <Button onClick={() => { sign.current = 'save'; setGlobalMessageBox(false) }} style={{}} type="primary">保存</Button>
+                        <Button onClick={() => { sign.current = 'cancel'; setGlobalMessageBox(false) }} style={{}} type="primary">取消</Button>
+                        <Button type="primary" onClick={() => { sign.current = 'close'; setGlobalMessageBox(false) }}>不保存</Button>
+                    </div>
 
+                </div>
+                <div style={{ position: 'absolute', backgroundColor: "#fafafa", width: '100%', height: "100%", zIndex: 999, opacity: 0.6 }}></div>
+            </div>) : null}
             {/* 侧栏 */}
             <div className={style.leftBar} id="leftBar" style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
                 <div style={{ width: "100%", height: "20px", display: "flex", justifyContent: "flex-end" }}>
@@ -696,7 +804,14 @@ export default function Layout({ children }) {
                                 style={{ display: "flex", alignItems: "center", position: "relative", whiteSpace: "nowrap" }} onClick={() => showFile({ name: item.name, path: item.path, wholePath: item.path + '/' + item.name + fileSuffix })}>
                                 <FileImg fileType={item.name.split(".")[item.name.split(".").length - 1]}></FileImg>
                                 <span style={{ width: "96px", textOverflow: "ellipsis", overflow: "hidden" }}> {item.name} </span>
-                                <img src="/remove.svg" alt="关闭" style={{ position: "absolute", right: "0", width: "20px", zIndex: "1" }} onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name }, e) }} />
+                                {(() => {
+                                    let file = findFile(item.path + '/' + item.name + fileSuffix)
+                                    if (file && file.hasChange) {
+                                        return <Dot className={`${style.close_img_hover}`} style={{ position: "absolute", right: "2px", width: "20px", zIndex: "1", borderRadius: "20%" }} onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name, wholePath: item.path + '/' + item.name + fileSuffix }, e) }}></Dot>
+                                    }
+                                    return <img className={`${style.close_img_hover}`} src="/remove.svg" alt="关闭" style={{ position: "absolute", right: "2px", width: "20px", zIndex: "1", borderRadius: "20%" }} onClick={(e) => { e.stopPropagation(); closeFile({ path: item.path, name: item.name, wholePath: item.path + '/' + item.name + fileSuffix }, e) }} />
+                                })()}
+
                             </div>
                         )
                     })
