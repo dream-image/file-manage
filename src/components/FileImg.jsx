@@ -21,8 +21,9 @@ import xml from '/FileImg/xml.svg'
 import vue from '/FileImg/Vue.svg'
 import love from '/FileImg/love.svg'
 import jsx from '/FileImg/React.svg'
-
-
+import ts from "/FileImg/typescript.svg"
+import svg from '/FileImg/edge.svg'
+import cjs from '/FileImg/conf.svg'
 export default function FileImg(props) {
 
     props = {
@@ -30,7 +31,7 @@ export default function FileImg(props) {
         fileType: props.fileType ? props.fileType.toLowerCase() : 'default'
     }
     let fileTypes = {
-        js, py, c, txt, zip, tar, cpp, conf, css, html, java,jar, jpg, json, log, md, png, xml,vue,jsx,love,
+        js, py, c, txt, zip, tar, cpp, conf, css, html, java,jar, jpg, json, log, md, png, xml,vue,jsx,love,ts,svg,cjs,
         default: defaultFileImg
     }
     return (

@@ -34,10 +34,12 @@ export default function Content(props) {
         // console.log(leftBar)
         if (leftBar)
             ob.observe(leftBar)
-
+        let topBar = document.getElementById("top-wrapper")
+        if (topBar)
+            ob.observe(topBar)
 
         let saveEvent = (event) => {
-            
+
             if (event.ctrlKey && event.key === 's') {
                 // console.log('count')
                 event.preventDefault();

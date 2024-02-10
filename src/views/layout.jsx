@@ -21,6 +21,13 @@ import { FolderOpenTwoTone, UndoOutlined, DeleteOutlined, FolderAddOutlined, Fil
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
+const typeObj = {
+    cjs: "javascript",
+    ts: "typescript",
+    js: "javascript",
+    "svg+xml":"xml"
+}
+
 
 export default function Layout({ children }) {
     const store = useContext(Context)
@@ -436,8 +443,14 @@ export default function Layout({ children }) {
 
             reader.onload = (e) => {
                 // console.log(e.target.result)
-                let type = file.type.split("/")
-                type = type[type.length - 1]
+                let type
+                if (!file.type) {
+                    type = file.name.split(".")[file.name.split(".").length - 1]
+                } else {
+                    type = file.type.split("/")
+                    type = type[type.length - 1]
+                }
+                console.log(type)
                 store.dispatch({
                     type: 'openedFile',
                     data: {
@@ -446,7 +459,7 @@ export default function Layout({ children }) {
                             hasChange: false,
                             copyContext: e.target.result,
                             originContext: e.target.result,
-                            type: type
+                            type: typeObj[type]?typeObj[type]:type
                         }
                     }
                 })
@@ -804,7 +817,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* 顶栏 */}
-            <div className={`top-wrapper ${style.top_bar}`} ref={topBarDom} style={{
+            <div id="top-wrapper" className={`top-wrapper ${style.top_bar}`} ref={topBarDom} style={{
                 position: "absolute", display: "flex", left: `${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 1}px`,
                 top: "0", fontSize: "14px", fontFamily: "Consolas, 'Courier New', monospace", height: `${topBar.length != 0 ? Math.ceil(topBar.length / Math.floor((viewWidth - leftBarDom.current?.getBoundingClientRect().width) / 140)) * 27 : 27}px`
                 , width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`, flexFlow: "wrap",
@@ -842,7 +855,7 @@ export default function Layout({ children }) {
             </div>
             <div className={style.main_body} style={{
                 position: "absolute", left: `${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 1}px`, top: `${topBarDom.current?.getBoundingClientRect().height}px`,
-                height: `calc(100vh - ${10 + topBarDom.current?.getBoundingClientRect().height }px)`, width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`,
+                height: `calc(100vh - ${10 + topBarDom.current?.getBoundingClientRect().height}px)`, width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`,
             }} >
                 {children}
             </div>

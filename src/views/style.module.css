@@ -9,7 +9,7 @@
     --default-background-color: #f3f3f3;
     --border-color: #e5e5e5;
     background-color: var(--default-background-color);
-    --right-border-width: 10px;
+    --right-border-width: 15px;
     --img-hover-color:rgb(205, 203, 203);
 }
 
