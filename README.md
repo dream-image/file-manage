@@ -1,8 +1,12 @@
-# React + Vite
+# React + Vite + SWC
+
 采用pnpm安装依赖包
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+目前还没开发好
+<div style="display:flex;flex-direction: column;">
+    <img src="./picture/默认页面.png" width="800px" />
+    <img src="./picture/打开文件中.png" width="800px" />
+    <img src="./picture/打开后.png" width="800px"/>
+    <img src="./picture/可调节宽度和自适应标签页高度.png" width="800px"/>
+    <img src="./picture/关闭.png" width="800px"/>
+</div>
