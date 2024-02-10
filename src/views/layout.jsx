@@ -25,7 +25,7 @@ const typeObj = {
     cjs: "javascript",
     ts: "typescript",
     js: "javascript",
-    "svg+xml":"xml"
+    "svg+xml": "xml"
 }
 
 
@@ -234,7 +234,7 @@ export default function Layout({ children }) {
             }
         }
     }
-    let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false) => {
+    let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false, changeState = true) => {
 
         if (!onlyHighLight && (new RegExp(dirSuffix).test(target) || target === '/')) {
             setFoldState({ ...foldState, [target]: !foldState[target] })
@@ -248,7 +248,7 @@ export default function Layout({ children }) {
                 if (i === target) {
 
                     Refs.current[i].current.className = `${style.dir} ${style.dir_active}`
-                    if (new RegExp(fileSuffix).test(target)) {
+                    if (changeState && new RegExp(fileSuffix).test(target)) {
                         store.dispatch({
                             type: 'currentFocus',
                             data: {
@@ -450,7 +450,7 @@ export default function Layout({ children }) {
                     type = file.type.split("/")
                     type = type[type.length - 1]
                 }
-                console.log(type)
+                // console.log(type)
                 store.dispatch({
                     type: 'openedFile',
                     data: {
@@ -459,7 +459,7 @@ export default function Layout({ children }) {
                             hasChange: false,
                             copyContext: e.target.result,
                             originContext: e.target.result,
-                            type: typeObj[type]?typeObj[type]:type
+                            type: typeObj[type] ? typeObj[type] : type
                         }
                     }
                 })
@@ -494,7 +494,7 @@ export default function Layout({ children }) {
     //关闭文件
     let sign = useRef()
     let closeFile = async (target, e) => {
-        console.log(target)
+        // console.log(target)
         // console.log("关闭")
         sign.current = ''
         let save = () => {
@@ -535,17 +535,28 @@ export default function Layout({ children }) {
                 let list = copy(topBar)
                 // console.log(index)
                 // console.log(list)
+                if (state.currentFocusContext.targetString != target.wholePath) {
+                    list.splice(index, 1)
+                    // console.log(list)
+                    if (index != -1)
+                        setTopBar([...list])
+                    return
+                }
                 list[index].active = false
                 // console.log(index)
-                if (index > 0)
+                if (index > 0) {
                     list[index - 1].active = true
+                    changeChosenBackgroundColorAndFoldState(list[index - 1].wholePath, true, false)
+                }
                 else {
-                    if (list[1])
+                    if (list[1]) {
                         list[1].active = true
+                        changeChosenBackgroundColorAndFoldState(list[1].wholePath, true, false)
+                    }
                 }
 
                 list.splice(index, 1)
-                console.log(list)
+                // console.log(list)
                 if (index != -1)
                     setTopBar([...list])
 

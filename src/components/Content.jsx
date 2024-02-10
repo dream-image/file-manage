@@ -79,7 +79,7 @@ export default function Content(props) {
             // console.log(file)
             if (!file || !file.handle)
                 return
-            console.log(file.type)
+            // console.log(file.type)
             instance = monaco.editor.create(monacoDom.current, {
                 value: file.copyContext,
                 language: file.type
