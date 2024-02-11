@@ -1,5 +1,5 @@
-# React + Vite + SWC
-
+# 网页版文件夹编辑器
+采用React + Vite + SWC
 采用pnpm安装依赖包
 
 目前还没开发好
