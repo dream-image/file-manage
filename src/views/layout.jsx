@@ -17,7 +17,11 @@ import Context from "../contexts/Context"
 import { copy } from "../utils/copyObject"
 import { handlePropertyName } from "../utils/symbols"
 import { Button, notification, Space } from 'antd'
-import { FolderOpenTwoTone, UndoOutlined, DeleteOutlined, FolderAddOutlined, FileAddOutlined } from '@ant-design/icons'
+import {
+    FolderOpenTwoTone, UndoOutlined,
+    DeleteOutlined, FolderAddOutlined,
+    FileAddOutlined, SettingTwoTone,
+} from '@ant-design/icons'
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
@@ -801,30 +805,36 @@ export default function Layout({ children }) {
 
             </div>
             {/* 侧栏底部 */}
-            <div>
+            <div style={{
+                position: 'absolute', top: `${5 + leftBarDom.current?.getBoundingClientRect().height * 1}px`,
+                left: `${0 + leftBarDom.current?.getBoundingClientRect().left * 1}px`, width: `${leftBarWidth - 4}px`, height: `40px`, display: "flex",
+                justifyContent: "space-evenly"
+            }}>
 
                 {!isOpen ? (<Button onClick={() => openDir()} size="large" loading={loading}
                     icon={<FolderOpenTwoTone />}
-                    className={style.button_hover}
+                    className={`${style.button_hover} ${style.button_active}`}
                     style={{
-                        position: 'absolute', top: `${2 + leftBarDom.current?.getBoundingClientRect().height * 1}px`,
-                        left: `${0 + leftBarDom.current?.getBoundingClientRect().left * 1}px`,
+
                         background: "linear-gradient(145deg, #d9d2d2, #fff9f9)",
                         boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
                     }}>
 
                 </Button>) : (<Button onClick={() => closeDir(false)} size="large"
                     icon={<CloseDir />}
-                    className={style.button_hover}
+                    className={`${style.button_hover} ${style.button_active}`}
                     style={{
-                        position: 'absolute', top: `${2 + leftBarDom.current?.getBoundingClientRect().height * 1}px`,
-                        left: `${0 + leftBarDom.current?.getBoundingClientRect().left * 1}px`,
                         background: "linear-gradient(145deg, #d9d2d2, #fff9f9)",
                         boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
                     }}>
 
                 </Button>)}
+                <Button icon={<SettingTwoTone />} className={`${style.button_hover} ${style.button_active}`} style={{
+                    background: "linear-gradient(145deg, #d9d2d2, #fff9f9)",
+                    boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
+                }} size="large">
 
+                </Button>
             </div>
 
             {/* 顶栏 */}
