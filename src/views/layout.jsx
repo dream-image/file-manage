@@ -9,6 +9,9 @@ import DirImg from "../components/DirImg"
 import FileImg from "../components/FileImg"
 import CloseDir from "../components/CloseDir"
 import Dot from "../components/Dot"
+import ConfigCard from "../components/configCard/ConfigCard"
+import CheckBox from "../components/configCard/CheckBox"
+import Input from "../components/configCard/Input"
 import { useEffect } from "react"
 import 'animate.css';
 import { flushSync } from "react-dom"
@@ -51,6 +54,7 @@ export default function Layout({ children }) {
     let [loading, setLoading] = useState(false) //打开文件的加载状态
     let [isOpen, setIsOpen] = useState(false)//是否已打开文件
     let [currentDirHandle, setCurrentDirHandle] = useState(null)//当前目录的句柄
+    let [isShowSetting, setIsShowSetting] = useState(false)//是否显示设置
     // console.log(CurrentFocus,changeFocus)
     const [fileTree, setFileTree] = useState([
         //文件树
@@ -661,7 +665,36 @@ export default function Layout({ children }) {
 
     }
 
+    let [settingOutAnimate, setSettingOutAnimate] = useState('')
+    let settingButton = useRef(null)
+    let settingMenu = useRef(null)
+    let observe = (e) => {
+        // console.log('见识到')
+        // console.log(setting)
+        if (!settingMenu.current.contains(e.target) && !settingButton.current.contains(e.target)) {
+            openSetting(false)
+        }
+    }
+    let openSetting = (open = true) => {
 
+        // console.log(isShowSetting)
+        if (!open) {
+            // console.log("一打开")
+            setSettingOutAnimate('animate__zoomOut')
+            document.removeEventListener('click', observe)
+            setTimeout(() => {
+                setIsShowSetting(false)
+            }, 300);
+        } else {
+            // console.log("未打开")
+            setTimeout(() => {
+                document.addEventListener('click', observe)
+            }, 300);
+            setSettingOutAnimate('')
+            setIsShowSetting(true)
+
+        }
+    }
 
     useEffect(() => {
         //监听侧栏右侧边界
@@ -832,10 +865,25 @@ export default function Layout({ children }) {
                 <Button icon={<SettingTwoTone />} className={`${style.button_hover} ${style.button_active}`} style={{
                     background: "linear-gradient(145deg, #d9d2d2, #fff9f9)",
                     boxShadow: " 20px 20px 60px #cdc6c6,-20px -20px 60px #ffffff"
-                }} size="large">
-
+                }} size="large" onClick={() => openSetting(!isShowSetting)} ref={settingButton}>
                 </Button>
             </div>
+
+            {/* 设置列表 */}
+            {
+                isShowSetting ? (
+                    <div style={{
+                        position: 'absolute', bottom: `${10 + topBarDom.current?.getBoundingClientRect().height * 1 - topBarDom.current?.getBoundingClientRect().height * 1}px`,
+                        left: `${leftBarWidth + leftBarDom.current?.getBoundingClientRect().left * 1}px`, width: "max-content", height: `max-content`, zIndex: "1"
+                    }} className={`animate__animated  animate__faster animate__bounce animate__zoomInLeft ${settingOutAnimate}`} ref={settingMenu}>
+                        <ConfigCard>
+                            <CheckBox id="1">文件失去焦点自动保存</CheckBox>
+                            <CheckBox id="2">开启侧栏宽度限制</CheckBox>
+                            <Input min="5" max="15" value={5}>文件首行间隙</Input>
+                        </ConfigCard>
+                    </div>
+                ) : null
+            }
 
             {/* 顶栏 */}
             <div id="top-wrapper" className={`top-wrapper ${style.top_bar}`} ref={topBarDom} style={{
