@@ -6,14 +6,9 @@ import { flushSync } from 'react-dom';
 import { message } from 'antd';
 
 
-
+let saveEvent //这个必须放外面，因为如果在content组件内部定义，由于useEffect是[]，只会在组件初次渲染的时候触发，所以会导致let saveEvent再次执行而变成undefined
 export default function Content(props) {
     // console.log(props)
-    const [text, setText] = useState("");
-    let onChangeHandle = (value) => {
-        setText(value);
-        console.log(value)
-    }
     let monacoDom = useRef(null)
 
     //监听视口变化
@@ -25,8 +20,10 @@ export default function Content(props) {
 
         return props.openedFileList[props.currentFocus.targetString]
     }
+
     //原生用法
     let instance
+    
     useEffect(() => {
         // console.log()
         ob.observe(document.body)
@@ -37,10 +34,9 @@ export default function Content(props) {
         let topBar = document.getElementById("top-wrapper")
         if (topBar)
             ob.observe(topBar)
+        saveEvent = (event, auto = false) => {
 
-        let saveEvent = (event) => {
-
-            if (event.ctrlKey && event.key === 's') {
+            if (auto || (event.ctrlKey && event.key === 's')) {
                 // console.log('count')
                 event.preventDefault();
                 let content = instance.getValue()
@@ -71,6 +67,7 @@ export default function Content(props) {
                 }
             }
         }
+
         // 使用定时器延迟初始化
         let file
         const timer = setTimeout(() => {
@@ -132,7 +129,11 @@ export default function Content(props) {
     }, [props.currentFocus]);
 
     return (
-        <div id="monaco" style={{ height: "100%", width: "100%" }} ref={monacoDom}>
+        <div id="monaco" style={{ height: "100%", width: "100%" }} onBlur={(e) => {
+            // console.log("失去焦点")
+            console.log(saveEvent)
+                props.autoSave ? saveEvent(e, true) : null
+        }} ref={monacoDom}>
             {/* reactMonaco用法 */}
             {/* <MonacoEditor
                 width="100%"

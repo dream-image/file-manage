@@ -6,7 +6,6 @@ function App() {
   const store = useContext(Context)
   const [state, setState] = useState(store.getState())
   useEffect(() => {
-
     let unsubscribe = store.subscribe(() => {
       setState(store.getState())
     })
@@ -15,7 +14,7 @@ function App() {
     }
   }, [])
   return (
-    <Content openedFileList={state.openedFileContext} currentFocus={state.currentFocusContext} store={store}></Content>
+    <Content openedFileList={state.openedFileContext} currentFocus={state.currentFocusContext} autoSave={state.config.autoSave} store={store}></Content>
   )
 }
 

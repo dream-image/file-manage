@@ -18,12 +18,16 @@ let initial = {
         targetString: "",
         type: "",
         currentHandle: undefined,
-
+    },
+    config: {
+        gap: 5,
+        autoSave: false,
+        hasMaxOfLeftBarWidth: true
     }
 };
 const reducer = (state = initial, action) => {
     state = { ...state };
-
+    // console.log(action)
     switch (action.type) {
         case "openedFile":
             state.openedFileContext = {
@@ -38,10 +42,10 @@ const reducer = (state = initial, action) => {
             }
         }
             break;
-        case "closeFile":{
+        case "closeFile": {
             delete state.openedFileContext[action.wholePath]
         }
-        break;
+            break;
         case "clear": {
             state.currentFocusContext = {
                 dirRootHandle: undefined,
@@ -61,6 +65,14 @@ const reducer = (state = initial, action) => {
                 }
             }
         }
+            break;
+        case "config": {
+            state.config = {
+                ...state.config,
+                ...action.config
+            }
+        }
+            break;
         default:
     }
     return state;

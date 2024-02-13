@@ -28,6 +28,7 @@ import {
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
+// 对于浏览器识别不出来的文件类型，这里手动加入
 const typeObj = {
     cjs: "javascript",
     ts: "typescript",
@@ -40,17 +41,29 @@ export default function Layout({ children }) {
     const store = useContext(Context)
     const [state, setState] = useState(store.getState())
     useEffect(() => {
-
         let unsubscribe = store.subscribe(() => {
-            setState(store.getState())
+            let value = store.getState()
+            setState(value)
+            // console.log(JSON.stringify(value.config) )
+            localStorage.setItem('config', JSON.stringify(value.config) )
         })
+        let config = localStorage.getItem('config')
+        // console.log(config)
+        if (config && (config=JSON.parse(config)))
+            store.dispatch({
+                type: "config",
+                config: { ...config }
+            })
         return () => {
             unsubscribe()
         }
     }, [])
     //配置暂时先写这
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
-    let [gap, setGap] = useState(5) //文件夹首与其子目录首的距离
+
+
+    let { gap, autoSave, hasMaxOfLeftBarWidth } = state.config
+
     let [loading, setLoading] = useState(false) //打开文件的加载状态
     let [isOpen, setIsOpen] = useState(false)//是否已打开文件
     let [currentDirHandle, setCurrentDirHandle] = useState(null)//当前目录的句柄
@@ -753,7 +766,7 @@ export default function Layout({ children }) {
                                 style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]}
                                 onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path, wholePath: path + "/" + i + fileSuffix }) }}>
                                 {/* {console.log(Refs.current)} */}
-                                <span style={{ width: "90%", transform: `translateX(${gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
+                                <span style={{ width: "90%", transform: `translateX(${state.config.gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
                                     <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
                             </div>
                         </div>
@@ -763,7 +776,7 @@ export default function Layout({ children }) {
                         <div key={path + "/" + i} style={{ display: "flex", width: "100%" }}>
                             <div title={currentDirHandle.name + path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                                 <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
-                                    <span style={{ width: "min-content", transform: `translateX(${gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
+                                    <span style={{ width: "min-content", transform: `translateX(${state.config.gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
                                         <img src={foldState[path + "/" + i + dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
                                         <DirImg></DirImg>
                                         {i}
@@ -877,8 +890,8 @@ export default function Layout({ children }) {
                         left: `${leftBarWidth + leftBarDom.current?.getBoundingClientRect().left * 1}px`, width: "max-content", height: `max-content`, zIndex: "1"
                     }} className={`animate__animated  animate__faster animate__bounce animate__zoomInLeft ${settingOutAnimate}`} ref={settingMenu}>
                         <ConfigCard>
-                            <CheckBox id="1">文件失去焦点自动保存</CheckBox>
-                            <CheckBox id="2">开启侧栏宽度限制</CheckBox>
+                            <CheckBox id="1" value={state.config.autoSave} name="autoSave">文件失去焦点自动保存</CheckBox>
+                            <CheckBox id="2" value={state.config.hasMaxOfLeftBarWidth} name="hasMaxOfLeftBarWidth">开启侧栏宽度限制</CheckBox>
                             <Input min="5" max="15" value={5}>文件首行间隙</Input>
                         </ConfigCard>
                     </div>
