@@ -731,9 +731,15 @@ export default function Layout({ children }) {
         // console.log(blurRadius)
         //范围修正
         let rangeAmend = 3
-        if (leftBarWidth >= 295 && state.config.hasMaxOfLeftBarWidth) {
-            setLeftBarWidth(295)
-            localStorage.setItem('leftBarWidth', 295)
+        if ((leftBarWidth >= 295 || leftBarWidth<=130)&& state.config.hasMaxOfLeftBarWidth ) {
+            if(leftBarWidth >= 295){
+                setLeftBarWidth(295)
+                localStorage.setItem('leftBarWidth', 295)
+            }else{
+                setLeftBarWidth(130)
+                localStorage.setItem('leftBarWidth', 130)
+            }
+           
         }
         let clickObserve = (e) => {
             // console.log('点击时间')
@@ -748,7 +754,8 @@ export default function Layout({ children }) {
                 let moveObserve = (e) => {
                     // console.log("移动事件")
                     let moveX = e.clientX - startX
-                    if (position + moveX > 130 && state.config.hasMaxOfLeftBarWidth ? position + moveX < 300 : true) {
+                    // console.log(position + moveX)
+                    if ((position + moveX > 130) && (state.config.hasMaxOfLeftBarWidth ? position + moveX < 300 : true)) {
                         // console.log("@@",leftBarWidth,moveX)
                         setLeftBarWidth(position - 5 + moveX)
                         // flushSync()
