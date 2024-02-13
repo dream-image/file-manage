@@ -45,11 +45,11 @@ export default function Layout({ children }) {
             let value = store.getState()
             setState(value)
             // console.log(JSON.stringify(value.config) )
-            localStorage.setItem('config', JSON.stringify(value.config) )
+            localStorage.setItem('config', JSON.stringify(value.config))
         })
         let config = localStorage.getItem('config')
         // console.log(config)
-        if (config && (config=JSON.parse(config)))
+        if (config && (config = JSON.parse(config)))
             store.dispatch({
                 type: "config",
                 config: { ...config }
@@ -62,7 +62,6 @@ export default function Layout({ children }) {
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
 
 
-    let { gap, autoSave, hasMaxOfLeftBarWidth } = state.config
 
     let [loading, setLoading] = useState(false) //打开文件的加载状态
     let [isOpen, setIsOpen] = useState(false)//是否已打开文件
@@ -716,16 +715,20 @@ export default function Layout({ children }) {
         // console.log(blurRadius)
         //范围修正
         let rangeAmend = 3
-
+        if (leftBarWidth >= 295 && state.config.hasMaxOfLeftBarWidth) {
+            setLeftBarWidth(295)
+        }
         let clickObserve = (e) => {
+            // console.log('点击时间')
             let position = leftBarDom.current.style.width.split("px")[0] * 1 + 5
-            if (e.clientX >= position - blurRadius + rangeAmend && e.clientX <= position + blurRadius + rangeAmend) {
+            if (e.clientX >= position - blurRadius + rangeAmend && e.clientX <= position + blurRadius + rangeAmend ) {
                 // console.log(e.clientX,position - blurRadius + rangeAmend,position + blurRadius + rangeAmend)
                 const startX = e.clientX;
                 // console.log("startX:",e.clientX)
                 let moveObserve = (e) => {
+                    // console.log("移动事件")
                     let moveX = e.clientX - startX
-                    if (position + moveX > 130 && position + moveX < 300) {
+                    if (position + moveX > 130 && state.config.hasMaxOfLeftBarWidth ? position + moveX < 300 : true) {
                         // console.log("@@",leftBarWidth,moveX)
                         setLeftBarWidth(position - 5 + moveX)
                         // flushSync()
@@ -745,7 +748,7 @@ export default function Layout({ children }) {
 
             window.removeEventListener('mousedown', clickObserve)
         }
-    }, [])
+    }, [state.config])
     // let observerRightBorderOfLeftBarForMove=()=>{
 
     // }
