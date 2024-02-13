@@ -40,6 +40,7 @@ const typeObj = {
 export default function Layout({ children }) {
     const store = useContext(Context)
     const [state, setState] = useState(store.getState())
+    let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
     useEffect(() => {
         let unsubscribe = store.subscribe(() => {
             let value = store.getState()
@@ -49,6 +50,13 @@ export default function Layout({ children }) {
         })
         let config = localStorage.getItem('config')
         // console.log(config)
+        let x = localStorage.getItem('leftBarWidth')
+        if (x) {
+            x = x * 1
+            // console.log(x)
+            setLeftBarWidth(x)
+        }
+
         if (config && (config = JSON.parse(config)))
             store.dispatch({
                 type: "config",
@@ -59,7 +67,8 @@ export default function Layout({ children }) {
         }
     }, [])
     //配置暂时先写这
-    let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
+
+
 
 
 
@@ -707,7 +716,14 @@ export default function Layout({ children }) {
 
         }
     }
-
+    let changeLeftBarState = () => {
+        if (leftBarWidth > 0) {
+            setLeftBarWidth(0)
+        } else {
+            let x = localStorage.getItem('leftBarWidth')
+            setLeftBarWidth(x ? x * 1 : 130)
+        }
+    }
     useEffect(() => {
         //监听侧栏右侧边界
         //定义模糊半径
@@ -717,14 +733,18 @@ export default function Layout({ children }) {
         let rangeAmend = 3
         if (leftBarWidth >= 295 && state.config.hasMaxOfLeftBarWidth) {
             setLeftBarWidth(295)
+            localStorage.setItem('leftBarWidth', 295)
         }
         let clickObserve = (e) => {
             // console.log('点击时间')
             let position = leftBarDom.current.style.width.split("px")[0] * 1 + 5
-            if (e.clientX >= position - blurRadius + rangeAmend && e.clientX <= position + blurRadius + rangeAmend ) {
+            if (e.clientX >= position - blurRadius + rangeAmend && e.clientX <= position + blurRadius + rangeAmend) {
                 // console.log(e.clientX,position - blurRadius + rangeAmend,position + blurRadius + rangeAmend)
                 const startX = e.clientX;
                 // console.log("startX:",e.clientX)
+                let set = debounce((value) => {
+                    localStorage.setItem('leftBarWidth', value)
+                })
                 let moveObserve = (e) => {
                     // console.log("移动事件")
                     let moveX = e.clientX - startX
@@ -732,6 +752,7 @@ export default function Layout({ children }) {
                         // console.log("@@",leftBarWidth,moveX)
                         setLeftBarWidth(position - 5 + moveX)
                         // flushSync()
+                        set(position - 5 + moveX)
                     }
                 }
                 window.addEventListener('mousemove', moveObserve)
@@ -895,7 +916,7 @@ export default function Layout({ children }) {
                         <ConfigCard>
                             <CheckBox id="1" value={state.config.autoSave} name="autoSave">文件失去焦点自动保存</CheckBox>
                             <CheckBox id="2" value={state.config.hasMaxOfLeftBarWidth} name="hasMaxOfLeftBarWidth">开启侧栏宽度限制</CheckBox>
-                            <Input min="5" max="15" value={5}>文件首行间隙</Input>
+                            <Input min="5" max="15" value={state.config.gap} name="gap">文件首行间隙</Input>
                         </ConfigCard>
                     </div>
                 ) : null
@@ -906,7 +927,7 @@ export default function Layout({ children }) {
                 position: "absolute", display: "flex", left: `${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 1}px`,
                 top: "0", fontSize: "14px", fontFamily: "Consolas, 'Courier New', monospace", height: `${topBar.length != 0 ? Math.ceil(topBar.length / Math.floor((viewWidth - leftBarDom.current?.getBoundingClientRect().width) / 140)) * 27 : 27}px`
                 , width: `calc(100vw - ${leftBarWidth + leftBarDom.current?.style.left.split("px")[0] * 2}px)`, flexFlow: "wrap",
-            }}>
+            }} onDoubleClick={() => { changeLeftBarState() }}>
                 {
 
                     topBar.map((item) => {
