@@ -131,7 +131,7 @@ export default function Content(props) {
     return (
         <div id="monaco" style={{ height: "100%", width: "100%" }} onBlur={(e) => {
             // console.log("失去焦点")
-            console.log(saveEvent)
+            // console.log(saveEvent)
                 props.autoSave ? saveEvent(e, true) : null
         }} ref={monacoDom}>
             {/* reactMonaco用法 */}
