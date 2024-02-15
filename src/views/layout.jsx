@@ -998,7 +998,7 @@ export default function Layout({ children }) {
             {/* 新增文件交互 */}
             <>
                 <Modal title="新增文件" open={isNewFile} onOk={() => newFileHandleObj.sureNewFile()} okText="确认" cancelText="取消" onCancel={() => newFileHandleObj.cancelNewFile()}>
-                    <Input placeholder="请输入文件名" ref={inputDom} value={fileName} onChange={(e) => {
+                    <Input placeholder="请输入文件名" ref={inputDom} value={fileName} onPressEnter={() => newFileHandleObj.sureNewFile()} onChange={(e) => {
                         setFileName(e.target.value)
                     }}></Input>
                 </Modal>
