@@ -11,7 +11,7 @@ import CloseDir from "../components/CloseDir"
 import Dot from "../components/Dot"
 import ConfigCard from "../components/configCard/ConfigCard"
 import CheckBox from "../components/configCard/CheckBox"
-import Input from "../components/configCard/Input"
+import ConfigInput from "../components/configCard/Input"
 import { useEffect } from "react"
 import 'animate.css';
 import { flushSync } from "react-dom"
@@ -19,11 +19,12 @@ import { useContext } from "react"
 import Context from "../contexts/Context"
 import { copy } from "../utils/copyObject"
 import { handlePropertyName } from "../utils/symbols"
-import { Button, notification, Space } from 'antd'
+import { Button, notification, Space, Modal, message, Input } from 'antd'
 import {
     FolderOpenTwoTone, UndoOutlined,
     DeleteOutlined, FolderAddOutlined,
     FileAddOutlined, SettingTwoTone,
+    WarningTwoTone
 } from '@ant-design/icons'
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
@@ -36,10 +37,16 @@ const typeObj = {
     "svg+xml": "xml"
 }
 
-
+const currentPath = {
+    type: "",
+    wholePath: "",
+    handle: undefined
+}
 export default function Layout({ children }) {
     const store = useContext(Context)
     const [state, setState] = useState(store.getState())
+    const [newFileName, setNewFileName] = useState("")
+    const [isNewFile, setIsNewFile] = useState(false)
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
     useEffect(() => {
         let unsubscribe = store.subscribe(() => {
@@ -264,10 +271,11 @@ export default function Layout({ children }) {
         }
     }
     let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false, changeState = true) => {
-
+        currentPath.wholePath = target
         if (!onlyHighLight && (new RegExp(dirSuffix).test(target) || target === '/')) {
             setFoldState({ ...foldState, [target]: !foldState[target] })
             changeFoldState("inverse", target, !foldState[target])
+            currentPath.type = "dir"
         }
         setTimeout(() => {
             Object.keys(Refs.current).forEach(i => {
@@ -285,6 +293,7 @@ export default function Layout({ children }) {
                                 targetString: target
                             }
                         })
+                        currentPath.type = "file"
                     }
 
                     // let index=i.lastIndexOf('\/')
@@ -419,7 +428,8 @@ export default function Layout({ children }) {
             setFileTree(tree)
             setFoldState(initFoldState(tree))
             setShowedFile(shallowFile(tree))
-
+            currentPath.type = 'dir'
+            currentPath.wholePath = '/'
         } catch (error) {
             console.log(error)
             setLoading(false)
@@ -496,7 +506,8 @@ export default function Layout({ children }) {
                     type: 'currentFocus',
                     data: {
                         currentHandle: handle,
-                        targetString: target.wholePath
+                        targetString: target.wholePath,
+                        type: "file"
                     }
                 })
 
@@ -510,7 +521,8 @@ export default function Layout({ children }) {
                 type: 'currentFocus',
                 data: {
                     currentHandle: handle,
-                    targetString: target.wholePath
+                    targetString: target.wholePath,
+                    type: "file"
                 }
             })
         }
@@ -530,7 +542,7 @@ export default function Layout({ children }) {
             try {
                 (async () => {
                     let writable = await state.currentFocusContext.currentHandle.createWritable();
-                    console.log(state.currentFocusContext.currentHandle)
+                    // console.log(state.currentFocusContext.currentHandle)
                     await writable.write(fileContext.copyContext);
                     await writable.close()
                     store.dispatch({
@@ -678,17 +690,133 @@ export default function Layout({ children }) {
             if (!foldState[i + dirSuffix]) {
                 // console.log("找到false")
                 changeChosenBackgroundColorAndFoldState(i + dirSuffix, true)
+                currentPath.type = "file"
+                currentPath.wholePath = target.path + "/" + target.name + fileSuffix
                 return
             }
         }
         changeChosenBackgroundColorAndFoldState(target.path + "/" + target.name + fileSuffix)
 
+        currentPath.type = "file"
+        currentPath.wholePath = target.path + "/" + target.name + fileSuffix
+    }
+    let [fileName, setFileName] = useState("")
+
+    let newFileHandleObj = {
+        sureNewFile:async () => {
+            let path = []
+            if (currentPath.type === "file") {
+                path = currentPath.wholePath.split("/").slice(1, -1)
+            } else {
+                path = currentPath.wholePath.split("/").slice(1)
+                path[path.length - 1] = path[path.length - 1].split(dirSuffix)[0]
+            }
+            function findHandle(path, handle, index) {
+                if (index === path.length) {
+                    return handle
+                }
+                for (let i of handle.children) {
+                    if (i.name === path[index]) {
+                        return findHandle(path, i, index + 1)
+                    }
+                }
+            }
+            let handle
+            let tree
+            let node
+            if (path.length == 1 && path[0] == "") {
+                handle = currentDirHandle
+                node = [...fileTree]
+                for (let i of node) {
+                    let name = Object.keys(i)[0]
+                    if (name === fileName && i[name] instanceof String) {
+                        message.error({
+                            content: "文件名重复",
+                        })
+                        return
+                    }
+                }
+                let file =await handle.getFileHandle(fileName, { create: true })
+                handle.children.push(file)
+                node.push({ [fileName]: "file" })
+                tree = [...showedFile]
+                node = tree
+                node.push({ [fileName]: "file" })
+                tree.sort(sort)
+                Refs.current = {}
+                Refs.current['/'] = React.createRef()
+                initDomRefs('/', tree, Refs)
+                setFileTree(tree)
+                setShowedFile(tree)
+                setIsNewFile(false)
+                // console.log(currentDirHandle)
+                return
+            }
+            handle = findHandle(path, currentDirHandle, 0)
+            function findNode(path, node, index) {
+                if (index === path.length) {
+                    return node
+                }
+                // console.log(node)
+                for (let i of node) {
+                    let name = Object.keys(i)[0]
+                    if (name === path[index] && i[name] instanceof Array) {
+                        return findNode(path, i[name], index + 1)
+                    }
+                }
+            }
+
+            tree = [...fileTree]
+            node = findNode(path, tree, 0)
+            for (let i of node) {
+                let name = Object.keys(i)[0]
+                if (name === fileName) {
+                    message.error({
+                        content: "文件名重复",
+                    })
+                    return
+                }
+            }
+            let file =await handle.getFileHandle(fileName, { create: true })
+            handle.children.push(file)
+
+            node.push({ [fileName]: "file" })
+            tree = [...showedFile]
+            node = findNode(path, tree, 0)
+            node.push({ [fileName]: "file" })
+            tree.sort(sort)
+            Refs.current = {}
+            Refs.current['/'] = React.createRef()
+            initDomRefs('/', tree, Refs)
+            setFileTree(tree)
+            setShowedFile(tree)
+            setIsNewFile(false)
+        },
+        cancelNewFile: () => {
+            setIsNewFile(false)
+        }
+    }
+    let inputDom = useRef()
+    //新建文件
+    let newFile = async (e) => {
+        if (!currentPath.wholePath) {
+            message.warning({
+                content: '请先打开文件夹',
+                duration: "3"
+            });
+            return
+        }
+        setIsNewFile(true)
+        setTimeout(() => {
+            inputDom.current.focus()
+        }, 300);
 
     }
-
     let [settingOutAnimate, setSettingOutAnimate] = useState('')
     let settingButton = useRef(null)
     let settingMenu = useRef(null)
+
+    //点击其他地方关闭设置
     let observe = (e) => {
         // console.log('见识到')
         // console.log(setting)
@@ -696,6 +824,8 @@ export default function Layout({ children }) {
             openSetting(false)
         }
     }
+
+    //开关设置
     let openSetting = (open = true) => {
 
         // console.log(isShowSetting)
@@ -731,15 +861,15 @@ export default function Layout({ children }) {
         // console.log(blurRadius)
         //范围修正
         let rangeAmend = 3
-        if ((leftBarWidth >= 295 || leftBarWidth<=130)&& state.config.hasMaxOfLeftBarWidth ) {
-            if(leftBarWidth >= 295){
+        if ((leftBarWidth >= 295 || leftBarWidth <= 130) && state.config.hasMaxOfLeftBarWidth) {
+            if (leftBarWidth >= 295) {
                 setLeftBarWidth(295)
                 localStorage.setItem('leftBarWidth', 295)
-            }else{
+            } else {
                 setLeftBarWidth(130)
                 localStorage.setItem('leftBarWidth', 130)
             }
-           
+
         }
         let clickObserve = (e) => {
             // console.log('点击时间')
@@ -841,26 +971,41 @@ export default function Layout({ children }) {
             {/* 全局消息确认框 */}
             {globalMessageBox ? (<div style={{ position: 'absolute', left: '0', top: "0", width: '100%', height: "100%", zIndex: 999, }}>
                 <div style={{
-                    left: 0, right: 0, top: 0, bottom: 0, margin: 'auto auto', position: 'absolute', width: "300px", height: "182px", backgroundColor: "white", borderRadius: "48px",
-                    border: "1px solid black",
-                    display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", zIndex: 1000,
-                    padding: "10px 30px"
+                    left: 0, right: 0, top: 0, bottom: 0, margin: 'auto auto', position: 'absolute', width: "300px", height: "152px", backgroundColor: "#ffffff", borderRadius: "16px",
+                    border: "1px solid white",
+                    display: "flex", flexDirection: "column", justifyContent: "space-evenly", alignItems: "center", zIndex: 1000,
+                    padding: "10px 30px", color: "rgba(0,0,0,0.88)",
+                    boxShadow: "0 6px 16px 0 rgba(0, 0, 0, 0.08),0 3px 6px -4px rgba(0, 0, 0, 0.12),0 9px 28px 8px rgba(0, 0, 0, 0.05)"
                 }}>
-                    <div style={{ transform: "translateY(-30px)", fontSize: "30px", fontFamily: "楷书", fontWeight: 300, textAlign: "center" }} >文件已修改，是否保存?</div>
-                    <div style={{ display: "flex", justifyContent: "space-evenly", width: "100%" }}>
-                        <Button onClick={() => { sign.current = 'save'; setGlobalMessageBox(false) }} style={{}} type="primary">保存</Button>
-                        <Button onClick={() => { sign.current = 'cancel'; setGlobalMessageBox(false) }} style={{}} type="primary">取消</Button>
-                        <Button type="primary" onClick={() => { sign.current = 'close'; setGlobalMessageBox(false) }}>不保存</Button>
+                    <div style={{
+                        fontSize: "20px",
+                        fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif,'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol','Noto Color Emoji'",
+                        fontWeight: 300, textAlign: "center"
+                    }} ><WarningTwoTone twoToneColor="#faad14" style={{ marginRight: "5px" }} />文件已修改，是否保存?</div>
+                    <div style={{ display: "flex", justifyContent: "space-evenly", width: "100%", height: "50px", alignItems: "center" }}>
+                        <Button onClick={() => { sign.current = 'close'; setGlobalMessageBox(false) }} size="large" type="primary">不保存</Button>
+                        <Button onClick={() => { sign.current = 'save'; setGlobalMessageBox(false) }} size="large" type="primary">保存</Button>
+                        <Button onClick={() => { sign.current = 'cancel'; setGlobalMessageBox(false) }} size="large" >取消</Button>
+
                     </div>
 
                 </div>
-                <div style={{ position: 'absolute', backgroundColor: "#fafafa", width: '100%', height: "100%", zIndex: 999, opacity: 0.6 }}></div>
+                <div style={{ position: 'absolute', backgroundColor: "rgba(0, 0, 0, 0.45)", width: '100%', height: "100%", zIndex: 999, opacity: 0.6 }}></div>
             </div>) : null}
+
+            {/* 新增文件交互 */}
+            <>
+                <Modal title="新增文件" open={isNewFile} onOk={() => newFileHandleObj.sureNewFile()} okText="确认" cancelText="取消" onCancel={() => newFileHandleObj.cancelNewFile()}>
+                    <Input placeholder="请输入文件名" ref={inputDom} value={fileName} onChange={(e) => {
+                        setFileName(e.target.value)
+                    }}></Input>
+                </Modal>
+            </>
             {/* 侧栏 */}
             <div className={style.leftBar} id="leftBar" style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
                 <div style={{ width: "100%", height: "20px", display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" icon={<FolderAddOutlined />} src="/FileImg/file.svg" alt="新增文件" className={style.choice} />
-                    <Button size="small" icon={<FileAddOutlined />} src="/dir.svg" alt="新增文件夹" className={style.choice} />
+                    <Button size="small" icon={<FileAddOutlined />} alt="新增文件" onClick={(e) => newFile(e)} className={style.choice} />
+                    <Button size="small" icon={<FolderAddOutlined />} alt="新增文件夹" className={style.choice} />
                     <Button size="small" icon={<DeleteOutlined />} src="/delete.svg" alt="删除" className={style.choice} />
                     <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => { closeDir(true); openDir(currentDirHandle) }} />
                 </div>
@@ -923,7 +1068,7 @@ export default function Layout({ children }) {
                         <ConfigCard>
                             <CheckBox id="1" value={state.config.autoSave} name="autoSave">文件失去焦点自动保存</CheckBox>
                             <CheckBox id="2" value={state.config.hasMaxOfLeftBarWidth} name="hasMaxOfLeftBarWidth">开启侧栏宽度限制</CheckBox>
-                            <Input min="5" max="15" value={state.config.gap} name="gap">文件首行间隙</Input>
+                            <ConfigInput min="5" max="15" value={state.config.gap} name="gap">文件首行间隙</ConfigInput>
                         </ConfigCard>
                     </div>
                 ) : null
