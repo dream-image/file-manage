@@ -749,6 +749,7 @@ export default function Layout({ children }) {
                 setFileTree(tree)
                 setShowedFile(tree)
                 setIsNewFile(false)
+                setFileName("")
                 // console.log(currentDirHandle)
                 return
             }
@@ -794,6 +795,7 @@ export default function Layout({ children }) {
         },
         cancelNewFile: () => {
             setIsNewFile(false)
+            setFileName("")
         }
     }
     let inputDom = useRef()
