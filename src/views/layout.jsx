@@ -42,10 +42,10 @@ const currentPath = {
     wholePath: "",
     handle: undefined
 }
+let newType
 export default function Layout({ children }) {
     const store = useContext(Context)
     const [state, setState] = useState(store.getState())
-    const [newFileName, setNewFileName] = useState("")
     const [isNewFile, setIsNewFile] = useState(false)
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
     useEffect(() => {
@@ -73,16 +73,13 @@ export default function Layout({ children }) {
             unsubscribe()
         }
     }, [])
-    //配置暂时先写这
-
-
-
 
 
     let [loading, setLoading] = useState(false) //打开文件的加载状态
     let [isOpen, setIsOpen] = useState(false)//是否已打开文件
     let [currentDirHandle, setCurrentDirHandle] = useState(null)//当前目录的句柄
     let [isShowSetting, setIsShowSetting] = useState(false)//是否显示设置
+    let [isSaveAllFile, setIsSaveAllFile] = useState(false)//是否保存所有文件
     // console.log(CurrentFocus,changeFocus)
     const [fileTree, setFileTree] = useState([
         //文件树
@@ -272,6 +269,7 @@ export default function Layout({ children }) {
     }
     let changeChosenBackgroundColorAndFoldState = (target, onlyHighLight = false, changeState = true) => {
         currentPath.wholePath = target
+        // console.log(currentPath)
         if (!onlyHighLight && (new RegExp(dirSuffix).test(target) || target === '/')) {
             setFoldState({ ...foldState, [target]: !foldState[target] })
             changeFoldState("inverse", target, !foldState[target])
@@ -703,45 +701,135 @@ export default function Layout({ children }) {
     let [fileName, setFileName] = useState("")
 
     let newFileHandleObj = {
-        sureNewFile:async () => {
-            let path = []
-            if (currentPath.type === "file") {
-                path = currentPath.wholePath.split("/").slice(1, -1)
-            } else {
-                path = currentPath.wholePath.split("/").slice(1)
-                path[path.length - 1] = path[path.length - 1].split(dirSuffix)[0]
-            }
-            function findHandle(path, handle, index) {
-                if (index === path.length) {
-                    return handle
+        sureNewFile: async (type) => {
+            console.log(type)
+            console.log(currentPath)
+
+            try {
+                let path = []
+                if (currentPath.type === "file") {
+                    path = currentPath.wholePath.split("/").slice(1, -1)
+                } else {
+                    path = currentPath.wholePath.split("/").slice(1)
+                    path[path.length - 1] = path[path.length - 1].split(dirSuffix)[0]
                 }
-                for (let i of handle.children) {
-                    if (i.name === path[index]) {
-                        return findHandle(path, i, index + 1)
+                function findHandle(path, handle, index) {
+                    if (index === path.length) {
+                        return handle
+                    }
+                    for (let i of handle.children) {
+                        if (i.name === path[index]) {
+                            return findHandle(path, i, index + 1)
+                        }
                     }
                 }
-            }
-            let handle
-            let tree
-            let node
-            if (path.length == 1 && path[0] == "") {
-                handle = currentDirHandle
-                node = [...fileTree]
-                for (let i of node) {
-                    let name = Object.keys(i)[0]
-                    if (name === fileName && i[name] instanceof String) {
-                        message.error({
-                            content: "文件名重复",
-                        })
-                        return
+                let handle
+                let tree
+                let node
+                if (path.length == 1 && path[0] == "") {
+                    handle = currentDirHandle
+                    node = [...fileTree]
+                    if (type == 'file') {
+                        for (let i of node) {
+                            let name = Object.keys(i)[0]
+                            if (name === fileName && i[name] instanceof String) {
+                                message.error({
+                                    content: "文件名重复",
+                                })
+                                return
+                            }
+                        }
+                        let file = await handle.getFileHandle(fileName, { create: true })
+                        handle.children.push(file)
+                        node.push({ [fileName]: "file" })
+                        tree = [...showedFile]
+                        node = tree
+                        node.push({ [fileName]: "file" })
+                    }
+                    else {
+                        for (let i of node) {
+                            let name = Object.keys(i)[0]
+                            if (name === fileName && i[name] instanceof Array) {
+                                message.error({
+                                    content: "文件夹名重复",
+                                })
+                                return
+                            }
+                        }
+                        let file = await handle.getDirectoryHandle(fileName, { create: true })
+                        handle.children.push(file)
+                        node.push({ [fileName]: [] })
+                        tree = [...showedFile]
+                        node = tree
+                        node.push({ [fileName]: [] })
+                    }
+                    tree.sort(sort)
+                    Refs.current = {}
+                    Refs.current['/'] = React.createRef()
+                    initDomRefs('/', tree, Refs)
+                    setFileTree(tree)
+                    setShowedFile(tree)
+                    setIsNewFile(false)
+                    setFileName("")
+                    // console.log(currentDirHandle)
+                    return
+                }
+                handle = findHandle(path, currentDirHandle, 0)
+                function findNode(path, node, index) {
+                    if (index === path.length) {
+                        return node
+                    }
+                    // console.log(node)
+                    for (let i of node) {
+                        let name = Object.keys(i)[0]
+                        if (name === path[index] && i[name] instanceof Array) {
+                            return findNode(path, i[name], index + 1)
+                        }
                     }
                 }
-                let file =await handle.getFileHandle(fileName, { create: true })
-                handle.children.push(file)
-                node.push({ [fileName]: "file" })
-                tree = [...showedFile]
-                node = tree
-                node.push({ [fileName]: "file" })
+
+                tree = [...fileTree]
+                node = findNode(path, tree, 0)
+                if (type === 'file') {
+                    for (let i of node) {
+                        let name = Object.keys(i)[0]
+                        if (name === fileName && i[name] instanceof String) {
+                            message.error({
+                                content: "文件名重复",
+                            })
+                            return
+                        }
+                    }
+                    let file = await handle.getFileHandle(fileName, { create: true })
+                    if (!handle.children) {
+                        handle.children = []
+                    }
+                    handle.children.push(file)
+
+                    node.push({ [fileName]: "file" })
+                    tree = [...showedFile]
+                    node = findNode(path, tree, 0)
+                    node.push({ [fileName]: "file" })
+                }
+                else {
+                    for (let i of node) {
+                        let name = Object.keys(i)[0]
+                        if (name === fileName && i[name] instanceof Array) {
+                            message.error({
+                                content: "文件夹名重复",
+                            })
+                            return
+                        }
+                    }
+                    let file = await handle.getDirectoryHandle(fileName, { create: true })
+                    handle.children.push(file)
+                    node.push({ [fileName]: [] })
+                    tree = [...showedFile]
+                    node = findNode(path, tree, 0)
+                    node.push({ [fileName]: [] })
+
+                }
+                setFileName("")
                 tree.sort(sort)
                 Refs.current = {}
                 Refs.current['/'] = React.createRef()
@@ -749,49 +837,25 @@ export default function Layout({ children }) {
                 setFileTree(tree)
                 setShowedFile(tree)
                 setIsNewFile(false)
-                setFileName("")
-                // console.log(currentDirHandle)
-                return
-            }
-            handle = findHandle(path, currentDirHandle, 0)
-            function findNode(path, node, index) {
-                if (index === path.length) {
-                    return node
+            } catch (error) {
+                let errorMessage
+                console.log(error)
+                switch (error.name) {
+                    case 'TypeError':
+                        errorMessage = '名称不规范'
+                        break;
+                    case 'NotAllowedError':
+                        errorMessage = '请允许修改'
+                        break;
+                    default:
+                        errorMessage = error
+                        break;
                 }
-                // console.log(node)
-                for (let i of node) {
-                    let name = Object.keys(i)[0]
-                    if (name === path[index] && i[name] instanceof Array) {
-                        return findNode(path, i[name], index + 1)
-                    }
-                }
+                message.error({
+                    content: errorMessage
+                })
             }
 
-            tree = [...fileTree]
-            node = findNode(path, tree, 0)
-            for (let i of node) {
-                let name = Object.keys(i)[0]
-                if (name === fileName) {
-                    message.error({
-                        content: "文件名重复",
-                    })
-                    return
-                }
-            }
-            let file =await handle.getFileHandle(fileName, { create: true })
-            handle.children.push(file)
-
-            node.push({ [fileName]: "file" })
-            tree = [...showedFile]
-            node = findNode(path, tree, 0)
-            node.push({ [fileName]: "file" })
-            tree.sort(sort)
-            Refs.current = {}
-            Refs.current['/'] = React.createRef()
-            initDomRefs('/', tree, Refs)
-            setFileTree(tree)
-            setShowedFile(tree)
-            setIsNewFile(false)
         },
         cancelNewFile: () => {
             setIsNewFile(false)
@@ -799,8 +863,9 @@ export default function Layout({ children }) {
         }
     }
     let inputDom = useRef()
+
     //新建文件
-    let newFile = async (e) => {
+    let newFileOrDir = async (e, type) => {
         if (!currentPath.wholePath) {
             message.warning({
                 content: '请先打开文件夹',
@@ -808,6 +873,7 @@ export default function Layout({ children }) {
             });
             return
         }
+        newType = type
         setIsNewFile(true)
         setTimeout(() => {
             inputDom.current.focus()
@@ -848,6 +914,22 @@ export default function Layout({ children }) {
 
         }
     }
+
+    //保存所有文件
+    let saveAllFile = () => {
+        let obj = state.openedFileContext
+        let handle
+        Object.keys(obj).forEach(async key => {
+            handle = obj[key].handle
+            if (!handle)
+                return
+            let writable = await handle.createWritable()
+            await writable.write(obj[key].copyContext)
+            await writable.close()
+        })
+    }
+
+    //是否显示左侧栏
     let changeLeftBarState = () => {
         if (leftBarWidth > 0) {
             setLeftBarWidth(0)
@@ -939,7 +1021,7 @@ export default function Layout({ children }) {
                         <div key={path + "/" + i} style={{ display: "flex", width: "100%" }}>
                             <div title={currentDirHandle.name + path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                                 <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
-                                    <span style={{ width: "min-content", transform: `translateX(${state.config.gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
+                                    <span style={{ width: "max-content", transform: `translateX(${state.config.gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
                                         <img src={foldState[path + "/" + i + dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
                                         <DirImg></DirImg>
                                         {i}
@@ -964,8 +1046,23 @@ export default function Layout({ children }) {
 
     useEffect(() => {
         ob.observe(document.body)
+        let handleClick = (e) => {
+            // console.log(e)
+            if (e.target.id === 'leftBar') {
+                Object.keys(Refs.current).forEach(i => {
+                    if (Refs.current[i].current)
+                        Refs.current[i].current.className = `${style.dir}`
+                })
+                currentPath.type = 'dir'
+                currentPath.wholePath = "/"
+            }
+
+
+        }
+        leftBarDom.current.addEventListener('click', handleClick)
         return () => {
             ob.disconnect()
+            leftBarDom.current.removeEventListener('click', handleClick)
         }
     }, [])
     return (
@@ -997,19 +1094,47 @@ export default function Layout({ children }) {
 
             {/* 新增文件交互 */}
             <>
-                <Modal title="新增文件" open={isNewFile} onOk={() => newFileHandleObj.sureNewFile()} okText="确认" cancelText="取消" onCancel={() => newFileHandleObj.cancelNewFile()}>
-                    <Input placeholder="请输入文件名" ref={inputDom} value={fileName} onPressEnter={() => newFileHandleObj.sureNewFile()} onChange={(e) => {
+                <Modal title={`新增文件${newType == 'dir' ? '夹' : ''}`} open={isNewFile} onOk={() => newFileHandleObj.sureNewFile(newType)} okText="确认" cancelText="取消" onCancel={() => newFileHandleObj.cancelNewFile()}>
+                    <Input placeholder={`请输入文件${newType == 'dir' ? '夹' : ''}名`} ref={inputDom} value={fileName} onPressEnter={() => newFileHandleObj.sureNewFile(newType)} onChange={(e) => {
                         setFileName(e.target.value)
                     }}></Input>
+                </Modal>
+            </>
+            {/* 刷新时候如果有文件未保存，则提示 */}
+            <>
+                <Modal title={`警告`} open={isSaveAllFile} footer={[
+                    <Button key="save" type="primary" onClick={() => {
+                        saveAllFile();
+                        closeDir(true); openDir(currentDirHandle);
+                        setIsSaveAllFile(false)
+                    }}>
+                        保存
+                    </Button>,
+                    <Button key="noSave" type="primary" loading={loading} onClick={() => {
+                        closeDir(true); openDir(currentDirHandle);
+                        setIsSaveAllFile(false)
+                    }}>
+                        不保存
+                    </Button>,
+                    <Button
+                        key="cancel"
+                        onClick={() => { setIsSaveAllFile(false) }}
+                    >
+                        取消
+                    </Button>,
+                ]}  >
+                    <span>有文件未保存，是否保存?</span>
                 </Modal>
             </>
             {/* 侧栏 */}
             <div className={style.leftBar} id="leftBar" style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
                 <div style={{ width: "100%", height: "20px", display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" icon={<FileAddOutlined />} alt="新增文件" onClick={(e) => newFile(e)} className={style.choice} />
-                    <Button size="small" icon={<FolderAddOutlined />} alt="新增文件夹" className={style.choice} />
+                    <Button size="small" icon={<FileAddOutlined />} alt="新增文件" onClick={(e) => newFileOrDir(e, 'file')} className={style.choice} />
+                    <Button size="small" icon={<FolderAddOutlined />} alt="新增文件夹" onClick={(e) => newFileOrDir(e, 'dir')} className={style.choice} />
                     <Button size="small" icon={<DeleteOutlined />} src="/delete.svg" alt="删除" className={style.choice} />
-                    <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => { closeDir(true); openDir(currentDirHandle) }} />
+                    <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => {
+                        setIsSaveAllFile(true)
+                    }} />
                 </div>
                 <div style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
                     {currentDirHandle ? (<div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
