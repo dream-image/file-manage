@@ -1133,7 +1133,14 @@ export default function Layout({ children }) {
                     <Button size="small" icon={<FolderAddOutlined />} alt="新增文件夹" onClick={(e) => newFileOrDir(e, 'dir')} className={style.choice} />
                     <Button size="small" icon={<DeleteOutlined />} src="/delete.svg" alt="删除" className={style.choice} />
                     <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => {
-                        setIsSaveAllFile(true)
+                        for (let i of Object.keys(state.openedFileContext)) {
+                            if (state.openedFileContext[i].hasChange) {
+                                setIsSaveAllFile(true);
+                                return
+                            }
+                        }
+                        closeDir(true); openDir(currentDirHandle);
+
                     }} />
                 </div>
                 <div style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
