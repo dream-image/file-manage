@@ -12,9 +12,11 @@ import Dot from "../components/Dot"
 import ConfigCard from "../components/configCard/ConfigCard"
 import CheckBox from "../components/configCard/CheckBox"
 import ConfigInput from "../components/configCard/Input"
+import Menu from "../components/Menu/Menu"
+import MenuItem from "../components/Menu/MenuItem"
 import { useEffect } from "react"
 import 'animate.css';
-import { flushSync } from "react-dom"
+import { flushSync, createPortal } from "react-dom"
 import { useContext } from "react"
 import Context from "../contexts/Context"
 import { copy } from "../utils/copyObject"
@@ -26,6 +28,8 @@ import {
     FileAddOutlined, SettingTwoTone,
     WarningTwoTone
 } from '@ant-design/icons'
+
+
 //构建文件Dom节点列表的时候，结尾加上后缀来区分是文件还是文件夹
 const fileSuffix = '#file'
 const dirSuffix = '#dir'
@@ -48,6 +52,7 @@ export default function Layout({ children }) {
     const [state, setState] = useState(store.getState())
     const [isNewFile, setIsNewFile] = useState(false)
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
+    const currentDirHandleRef = useRef() //这个就是为了解决监听事件里面获取的当前文件夹的handle为null
     useEffect(() => {
         let unsubscribe = store.subscribe(() => {
             let value = store.getState()
@@ -345,9 +350,15 @@ export default function Layout({ children }) {
         return file ? file : null
     }
     function findHandle(wholePath) {
+        // console.log(wholePath)
         let path = wholePath.split('/')
+        // console.log(path)
         path.shift()
+        if (path.length === 1 && path[0] === '') {
+            return currentDirHandleRef.current
+        }
         path[path.length - 1] = path[path.length - 1].split('#')[0]
+        // console.log(path)
         function find(path, handle, index) {
             if (handle.kind === 'file') {
                 return handle
@@ -361,7 +372,7 @@ export default function Layout({ children }) {
                 }
             }
         }
-        return find(path, currentDirHandle, 0)
+        return find(path, currentDirHandleRef.current, 0)
     }
 
     //本地读取文件夹
@@ -414,6 +425,7 @@ export default function Layout({ children }) {
             })
 
             setCurrentDirHandle(rootHandle)
+            currentDirHandleRef.current = rootHandle
             setLoading(false)
             setIsOpen(true)
             // console.log(tree)
@@ -440,6 +452,7 @@ export default function Layout({ children }) {
     let closeDir = (refresh) => {
         if (!refresh) {
             setCurrentDirHandle(null)
+            currentDirHandleRef.current = null
         }
 
         setIsOpen(false)
@@ -1005,25 +1018,25 @@ export default function Layout({ children }) {
             return Object.keys(j).map(i => {
                 if (!(j[i] instanceof Array)) {
                     return (
-                        <div key={path + "/" + i}>
+                        <div key={path + "/" + i} data-path={path + "/" + i + fileSuffix}>
                             {/* 注意，这里外面的一层div不能和下面的合并，这是为了和文件夹的结构对应，不然统一处理的时候会出问题 */}
                             <div title={!path ? currentDirHandle.name + "/" + i : currentDirHandle.name + path + "/" + i} className={`${style.border} ${style.file}`}
                                 style={{ width: `${leftBarWidth - 2}px`, display: "flex" }} ref={Refs.current[path + "/" + i + fileSuffix]}
                                 onClick={() => { changeChosenBackgroundColorAndFoldState(path + "/" + i + fileSuffix); openFile({ name: i, path: path, wholePath: path + "/" + i + fileSuffix }) }}>
                                 {/* {console.log(Refs.current)} */}
-                                <span style={{ width: "90%", transform: `translateX(${state.config.gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
-                                    <FileImg fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
+                                <span data-type='file' style={{ width: "90%", transform: `translateX(${state.config.gap * (index)}px)`, display: "flex", alignItems: "center", whiteSpace: "nowrap" }}>
+                                    <FileImg type='file' fileType={i.split(".")[i.split(".").length - 1]}></FileImg>{i}</span>
                             </div>
                         </div>
                     )
                 } else {
                     return (
-                        <div key={path + "/" + i} style={{ display: "flex", width: "100%" }}>
+                        <div key={path + "/" + i} data-path={path + "/" + i + dirSuffix} style={{ display: "flex", width: "100%" }}>
                             <div title={currentDirHandle.name + path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-                                <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
-                                    <span style={{ width: "max-content", transform: `translateX(${state.config.gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
-                                        <img src={foldState[path + "/" + i + dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
-                                        <DirImg></DirImg>
+                                <div className={style.dir} data-type='dir' style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
+                                    <span data-type='dir' style={{ width: "max-content", transform: `translateX(${state.config.gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
+                                        <img data-type='dir' src={foldState[path + "/" + i + dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
+                                        <DirImg type='dir'></DirImg>
                                         {i}
                                     </span>
                                 </div>
@@ -1044,6 +1057,48 @@ export default function Layout({ children }) {
         setViewWidth(document.body.getBoundingClientRect().width)
     }, 100))
 
+    let [menuInfo, setMenuInfo] = useState({
+        active: false,
+        x: 0,
+        y: 0,
+    })
+    let menuDom=useRef()
+    let createMenu = (e) => {
+        e.preventDefault()
+        console.log(e.target)
+        if (e.target.id === 'leftBar')
+            return
+        setMenuInfo({
+            active: true,
+            x: e.clientX,
+            y: e.clientY
+        })
+        if (e.target.nodeName === 'SPAN') {
+            if (e.target.dataset.type === 'file') {
+                // console.log(e.target.parentNode.parentNode.dataset.path)
+                let handle = findHandle(e.target.parentNode.parentNode.dataset.path)
+                console.log(handle)
+            } else if (e.target.dataset.type === 'dir') {
+                let handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path)
+                console.log(handle)
+            }
+
+            // console.log(e.target.parrentNode.id)
+        } else if (e.target.nodeName === 'IMG') {
+            if (e.target.dataset.type === 'file') {
+                // console.log(e.target.parentNode.parentNode.dataset.path)
+                let handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path)
+                console.log(handle)
+            } else if (e.target.dataset.type === 'dir') {
+                let handle = findHandle(e.target.parentNode.parentNode.parentNode.parentNode.dataset.path)
+                console.log(handle)
+            }
+        }
+        else if (e.target.nodeName === 'DIV') {
+            console.log(e.target.dataset.type)
+        }
+
+    }
     useEffect(() => {
         ob.observe(document.body)
         let handleClick = (e) => {
@@ -1060,13 +1115,34 @@ export default function Layout({ children }) {
 
         }
         leftBarDom.current.addEventListener('click', handleClick)
+        leftBarDom.current.addEventListener('contextmenu', createMenu)
+        let closeMenu = (e) => {
+            if(menuInfo.active){
+                console.log("触发")
+                setMenuInfo({...menuInfo,active:false})
+            }
+        }
+        document.addEventListener('click',closeMenu)
         return () => {
             ob.disconnect()
             leftBarDom.current.removeEventListener('click', handleClick)
+            leftBarDom.current.removeEventListener('contextmenu', createMenu)
+            document.removeEventListener('click',closeMenu)
         }
     }, [])
+    // document.oncontextmenu = function(e){
+    //     return false
+    //     //或者 e.preventDefault()
+    // }
     return (
         <div>
+            {/* 右键侧栏显示菜单 */}
+            {menuInfo.active ? (
+                createPortal(<Menu style={{ left: menuInfo.x, top: menuInfo.y }} ref={menuDom}>
+                    <MenuItem>子节点</MenuItem>
+                    <MenuItem>子节点2</MenuItem>
+                </Menu>, document.body)) : null
+            }
             {/* 全局消息确认框 */}
             {globalMessageBox ? (<div style={{ position: 'absolute', left: '0', top: "0", width: '100%', height: "100%", zIndex: 999, }}>
                 <div style={{
@@ -1143,13 +1219,12 @@ export default function Layout({ children }) {
 
                     }} />
                 </div>
-                <div style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
+                <div data-path='/' style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
                     {currentDirHandle ? (<div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
-                        <div className={style.dir} style={{ width: "100%", display: "flex" }} ref={Refs.current["/"]} onClick={() => changeChosenBackgroundColorAndFoldState('/')}>
-                            <span style={{ width: "90%", display: "flex", flexDirection: "row", alignItems: "center", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                <img src={foldState['/'] ? downArrow : rightArrow} alt="箭头" className={style.label} />
-
-                                <DirImg></DirImg>
+                        <div className={style.dir} data-type='dir' style={{ width: "100%", display: "flex" }} ref={Refs.current["/"]} onClick={() => changeChosenBackgroundColorAndFoldState('/')}>
+                            <span data-type='dir' style={{ width: "90%", display: "flex", flexDirection: "row", alignItems: "center", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <img data-type='dir' src={foldState['/'] ? downArrow : rightArrow} alt="箭头" className={style.label} />
+                                <DirImg type='dir'></DirImg>
                                 {currentDirHandle.name}
                             </span>
                         </div>
@@ -1157,9 +1232,9 @@ export default function Layout({ children }) {
                             <div >{createFileDom('/', showedFile, 1)}</div>
                         </div>
                     </div>) : (
-                        <div  style={{ position: "absolute",display:"flex",flexDirection:"column",gap:state.config.gap,width:"100%", left: 0, right: 0, top: ((leftBarDom.current?.getBoundingClientRect().height?leftBarDom.current?.getBoundingClientRect().height:0) / 4), margin: "0 auto" }}>
-                            <span style={{width:"100%",textAlign:"center"}}>尚未打开文件夹</span> 
-                            <Button type="primary"  onClick={() => openDir()} icon={<FolderOpenTwoTone twoToneColor="#ffffff" />}>打开文件夹</Button>
+                        <div style={{ position: "absolute", display: "flex", flexDirection: "column", gap: state.config.gap, width: "100%", left: 0, right: 0, top: ((leftBarDom.current?.getBoundingClientRect().height ? leftBarDom.current?.getBoundingClientRect().height : 0) / 4), margin: "0 auto" }}>
+                            <span style={{ width: "100%", textAlign: "center" }}>尚未打开文件夹</span>
+                            <Button type="primary" onClick={() => openDir()} icon={<FolderOpenTwoTone twoToneColor="#ffffff" />}>打开文件夹</Button>
                         </div>
 
                     )}
@@ -1174,7 +1249,7 @@ export default function Layout({ children }) {
             }}>
 
                 {!isOpen ? (<Button onClick={() => openDir()} size="large" loading={loading}
-                    icon={<FolderOpenTwoTone  />}
+                    icon={<FolderOpenTwoTone />}
                     className={`${style.button_hover} ${style.button_active}`}
                     style={{
 

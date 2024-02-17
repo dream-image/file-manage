@@ -1,0 +1,11 @@
+.item {
+    box-shadow: 50% 10px 100px var(--default-background-color),
+        -50% -10px 100px var(--default-background-color);
+}
+
+.item_hover {
+    /* filter: brightness(1.5); */
+    background: linear-gradient(135deg, #e0eafc, #ffffff);
+    box-shadow: 50% 10px 100px var(--active-color),
+        -50% -10px 100px var(--active-color);
+}

@@ -25,7 +25,6 @@ import ts from "/FileImg/typescript.svg"
 import svg from '/FileImg/edge.svg'
 import cjs from '/FileImg/conf.svg'
 export default function FileImg(props) {
-
     props = {
         ...props,
         fileType: props.fileType ? props.fileType.toLowerCase() : 'default'
@@ -35,6 +34,6 @@ export default function FileImg(props) {
         default: defaultFileImg
     }
     return (
-        <img src={fileTypes[props.fileType] ? fileTypes[props.fileType] : defaultFileImg} alt="文件" className={style.label} style={{ margin: '0 3px' }} />
+        <img src={fileTypes[props.fileType] ? fileTypes[props.fileType] : defaultFileImg} data-type={props.type} alt="文件" className={style.label} style={{ margin: '0 3px' }} />
     )
 }
