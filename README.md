@@ -9,4 +9,6 @@
     <img src="./picture/打开后.png" width="800px"/>
     <img src="./picture/可调节宽度和自适应标签页高度.png" width="800px"/>
     <img src="./picture/关闭.png" width="800px"/>
+    <img src="./picture/可隐藏侧栏.png" width="800px"/>
+    <img src="./picture/简单的设置.png" width="800px"/>
 </div>
