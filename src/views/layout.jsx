@@ -1156,7 +1156,13 @@ export default function Layout({ children }) {
                         <div className={`${style.border} ${style.heightTransition}`} style={{ width: "100%" }}>
                             <div >{createFileDom('/', showedFile, 1)}</div>
                         </div>
-                    </div>) : null}
+                    </div>) : (
+                        <div  style={{ position: "absolute",display:"flex",flexDirection:"column",gap:state.config.gap,width:"100%", left: 0, right: 0, top: ((leftBarDom.current?.getBoundingClientRect().height?leftBarDom.current?.getBoundingClientRect().height:0) / 4), margin: "0 auto" }}>
+                            <span style={{width:"100%",textAlign:"center"}}>尚未打开文件夹</span> 
+                            <Button type="primary"  onClick={() => openDir()} icon={<FolderOpenTwoTone twoToneColor="#ffffff" />}>打开文件夹</Button>
+                        </div>
+
+                    )}
                 </div>
 
             </div>
@@ -1168,7 +1174,7 @@ export default function Layout({ children }) {
             }}>
 
                 {!isOpen ? (<Button onClick={() => openDir()} size="large" loading={loading}
-                    icon={<FolderOpenTwoTone />}
+                    icon={<FolderOpenTwoTone  />}
                     className={`${style.button_hover} ${style.button_active}`}
                     style={{
 
