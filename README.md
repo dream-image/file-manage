@@ -18,4 +18,8 @@
     <img src="./picture/可隐藏侧栏.png" width="100%"/>
     <span>简单的设置页面</span>
     <img src="./picture/简单的设置.png" width="100%"/>
+    <span>新建文件</span>
+    <img src="./picture/添加文件.png" width="100%"/>
+    <span>新建文件夹</span>
+    <img src="./picture/添加文件夹.png" width="100%"/>
 </div>

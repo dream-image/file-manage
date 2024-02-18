@@ -1,1 +1,8 @@
-addEventListener
+
+globalThis.requestIdleCallback((idle)=>{
+    if(idle.timeRemaining()){
+        // ...
+    }
+},{
+    
+})
