@@ -1057,18 +1057,23 @@ export default function Layout({ children }) {
         setViewWidth(document.body.getBoundingClientRect().width)
     }, 100))
 
-    let [menuInfo, setMenuInfo] = useState({
+    let [leftBarMenuInfo, setLeftBarMenuInfo] = useState({
         active: false,
         x: 0,
         y: 0,
     })
-    let menuDom=useRef()
-    let createMenu = (e) => {
+    let leftBarMenuInfoRef=useRef(leftBarMenuInfo)
+    leftBarMenuInfoRef.current=leftBarMenuInfo
+    let leftBarMenuDom = useRef()
+    let leftBarMenuHandle = (e) => {
         e.preventDefault()
         console.log(e.target)
-        if (e.target.id === 'leftBar')
+        if(topBarMenuInfoRef.current.active){
+            setTopBarMenuInfo({active:false,x:0,y:0})
+        }
+        if (e.target?.id === 'leftBar')
             return
-        setMenuInfo({
+        setLeftBarMenuInfo({
             active: true,
             x: e.clientX,
             y: e.clientY
@@ -1099,6 +1104,37 @@ export default function Layout({ children }) {
         }
 
     }
+
+    let [topBarMenuInfo, setTopBarMenuInfo] = useState({
+        active: false,
+        x: 0,
+        y: 0,
+    })
+    let topBarMenuInfoRef=useRef(topBarMenuInfo)
+    topBarMenuInfoRef.current=topBarMenuInfo
+    let topBarMenuDom = useRef()
+    let topBarMenuHandle = (e) => {
+        e.preventDefault()
+        console.log(e.target)
+        if(leftBarMenuInfoRef.current.active){
+            setLeftBarMenuInfo({active:false,x:0,y:0})
+        }
+        setTopBarMenuInfo({
+            active: true,
+            x: e.clientX,
+            y: e.clientY
+        })
+
+    }
+    let closeMenu = (e) => {
+        if (leftBarMenuInfoRef.current.active) {
+            console.log('@')
+            setLeftBarMenuInfo({ x: 0, y: 0, active: false })
+        }
+        if (topBarMenuInfoRef.current.active) {
+            setTopBarMenuInfo({ x: 0, y: 0, active: false })
+        }
+    }
     useEffect(() => {
         ob.observe(document.body)
         let handleClick = (e) => {
@@ -1115,19 +1151,17 @@ export default function Layout({ children }) {
 
         }
         leftBarDom.current.addEventListener('click', handleClick)
-        leftBarDom.current.addEventListener('contextmenu', createMenu)
-        let closeMenu = (e) => {
-            if(menuInfo.active){
-                console.log("触发")
-                setMenuInfo({...menuInfo,active:false})
-            }
-        }
-        document.addEventListener('click',closeMenu)
+        leftBarDom.current.addEventListener('contextmenu', leftBarMenuHandle)
+
+        document.addEventListener('click', closeMenu)
+        topBarDom.current.addEventListener('contextmenu', topBarMenuHandle)
+
         return () => {
             ob.disconnect()
             leftBarDom.current.removeEventListener('click', handleClick)
-            leftBarDom.current.removeEventListener('contextmenu', createMenu)
-            document.removeEventListener('click',closeMenu)
+            leftBarDom.current.removeEventListener('contextmenu', leftBarMenuHandle)
+            topBarDom.current.removeEventListener('contextmenu', topBarMenuHandle)
+            document.removeEventListener('click', closeMenu)
         }
     }, [])
     // document.oncontextmenu = function(e){
@@ -1137,12 +1171,22 @@ export default function Layout({ children }) {
     return (
         <div>
             {/* 右键侧栏显示菜单 */}
-            {menuInfo.active ? (
-                createPortal(<Menu style={{ left: menuInfo.x, top: menuInfo.y }} ref={menuDom}>
-                    <MenuItem>子节点</MenuItem>
-                    <MenuItem>子节点2</MenuItem>
-                </Menu>, document.body)) : null
+            {
+                leftBarMenuInfo.active ? (
+                    createPortal(<Menu style={{ left: leftBarMenuInfo.x, top: leftBarMenuInfo.y }} ref={leftBarMenuDom}>
+                        <MenuItem>子节点</MenuItem>
+                        <MenuItem>子节点2</MenuItem>
+                    </Menu>, document.body)) : null
             }
+            {/* 顶栏菜单 */}
+            {
+                topBarMenuInfo.active ? (
+                    createPortal(<Menu style={{ left: topBarMenuInfo.x, top: topBarMenuInfo.y }} ref={topBarMenuDom}>
+                        <MenuItem>顶部子节点</MenuItem>
+                        <MenuItem>顶部子节点2</MenuItem>
+                    </Menu>, document.body)) : null
+            }
+
             {/* 全局消息确认框 */}
             {globalMessageBox ? (<div style={{ position: 'absolute', left: '0', top: "0", width: '100%', height: "100%", zIndex: 999, }}>
                 <div style={{
