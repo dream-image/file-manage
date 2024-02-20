@@ -1211,9 +1211,9 @@ export default function Layout({ children }) {
         ob.observe(document.body)
         let handleClick = (e) => {
             // console.log(e)
-            if(chosenList.current){
+            if (chosenList.current) {
                 chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
-                chosenList.current=undefined
+                chosenList.current = undefined
             }
             if (e.target.id === 'leftBar') {
                 Object.keys(Refs.current).forEach(i => {
@@ -1343,7 +1343,7 @@ export default function Layout({ children }) {
                     }} />
                     <Button size="small" icon={<SwitcherOutlined />} title="折叠文件夹" alt="折疊文件夹" className={style.choice} onClick={() => folderAllFile()} />
                 </div>
-                <div data-path='/' style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
+                <div data-path='/' style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper" >
                     {currentDirHandle ? (<div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
                         <div className={style.dir} data-type='dir' style={{ width: "100%", display: "flex" }} ref={Refs.current["/"]} onClick={() => changeChosenBackgroundColorAndFoldState('/')}>
                             <span data-type='dir' style={{ width: "90%", display: "flex", flexDirection: "row", alignItems: "center", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1364,6 +1364,7 @@ export default function Layout({ children }) {
                     )}
                 </div>
 
+             
             </div>
             {/* 侧栏底部 */}
             <div style={{
