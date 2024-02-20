@@ -26,7 +26,7 @@ import {
     FolderOpenTwoTone, UndoOutlined,
     DeleteOutlined, FolderAddOutlined,
     FileAddOutlined, SettingTwoTone,
-    WarningTwoTone
+    WarningTwoTone, SwitcherOutlined
 } from '@ant-design/icons'
 
 
@@ -51,6 +51,7 @@ export default function Layout({ children }) {
     const store = useContext(Context)
     const [state, setState] = useState(store.getState())
     const [isNewFile, setIsNewFile] = useState(false)
+    const leftBarContextmenuChosenHandle = useRef()
     let [leftBarWidth, setLeftBarWidth] = useState(130)//左侧栏的默认宽度
     const currentDirHandleRef = useRef() //这个就是为了解决监听事件里面获取的当前文件夹的handle为null
     useEffect(() => {
@@ -349,7 +350,7 @@ export default function Layout({ children }) {
         let file = state.openedFileContext[wholePath]
         return file ? file : null
     }
-    function findHandle(wholePath) {
+    function findHandle(wholePath, type = 'file') {
         // console.log(wholePath)
         let path = wholePath.split('/')
         // console.log(path)
@@ -358,7 +359,7 @@ export default function Layout({ children }) {
             return currentDirHandleRef.current
         }
         path[path.length - 1] = path[path.length - 1].split('#')[0]
-        // console.log(path)
+        console.log(path)
         function find(path, handle, index) {
             if (handle.kind === 'file') {
                 return handle
@@ -366,10 +367,14 @@ export default function Layout({ children }) {
             if (path.length == index - 1) {
                 return handle
             }
+            if (type === 'dir' && path.length == index) {
+                return handle
+            }
             for (let i of handle.children) {
                 if (i.name === path[index]) {
                     return find(path, i, index + 1)
                 }
+
             }
         }
         return find(path, currentDirHandleRef.current, 0)
@@ -713,6 +718,7 @@ export default function Layout({ children }) {
     }
     let [fileName, setFileName] = useState("")
 
+    //存放是否新建确认新建文件(夹)处理的对象
     let newFileHandleObj = {
         sureNewFile: async (type) => {
             console.log(type)
@@ -877,8 +883,8 @@ export default function Layout({ children }) {
     }
     let inputDom = useRef()
 
-    //新建文件
-    let newFileOrDir = async (e, type) => {
+    //新建(夹)弹出框
+    let confirmBox = (e, type) => {
         if (!currentPath.wholePath) {
             message.warning({
                 content: '请先打开文件夹',
@@ -892,7 +898,31 @@ export default function Layout({ children }) {
             inputDom.current.focus()
         }, 300);
 
+
+
     }
+
+    let folderAllFile = () => {
+        let state = { ...foldState }
+        // console.log(foldState)
+        let brotherDom
+        // console.log(Refs.current)
+        Object.keys(state).forEach(i => {
+            if (i === '/')
+                return
+            // console.log(i)
+            state[i] = false
+            brotherDom = Refs.current[i]?.current.parentNode.children[1]
+            brotherDom?.style && (brotherDom.style.height = 0)
+        })
+        setFoldState(state)
+    }
+    //删除文件(夹)
+    let deleteFile = (e, type) => {
+
+
+    }
+
     let [settingOutAnimate, setSettingOutAnimate] = useState('')
     let settingButton = useRef(null)
     let settingMenu = useRef(null)
@@ -941,6 +971,8 @@ export default function Layout({ children }) {
             await writable.close()
         })
     }
+
+
 
     //是否显示左侧栏
     let changeLeftBarState = () => {
@@ -1062,14 +1094,15 @@ export default function Layout({ children }) {
         x: 0,
         y: 0,
     })
-    let leftBarMenuInfoRef=useRef(leftBarMenuInfo)
-    leftBarMenuInfoRef.current=leftBarMenuInfo
+    let leftBarMenuInfoRef = useRef(leftBarMenuInfo)
+    leftBarMenuInfoRef.current = leftBarMenuInfo
     let leftBarMenuDom = useRef()
+    const [leftBarMenuListNode, setLeftBarMenuListNode] = useState()
     let leftBarMenuHandle = (e) => {
         e.preventDefault()
         console.log(e.target)
-        if(topBarMenuInfoRef.current.active){
-            setTopBarMenuInfo({active:false,x:0,y:0})
+        if (topBarMenuInfoRef.current.active) {
+            setTopBarMenuInfo({ active: false, x: 0, y: 0 })
         }
         if (e.target?.id === 'leftBar')
             return
@@ -1078,30 +1111,43 @@ export default function Layout({ children }) {
             x: e.clientX,
             y: e.clientY
         })
+        if (e.target.dataset.type === 'file') {
+            setLeftBarMenuListNode((
+                <Menu style={{ left: e.clientX, top: e.clientY, width: "150px" }} ref={leftBarMenuDom}>
+                    <MenuItem>删除文件</MenuItem>
+                    <MenuItem>重命名</MenuItem>
+                </Menu>
+            ))
+        } else {
+            setLeftBarMenuListNode((
+                <Menu style={{ left: e.clientX, top: e.clientY, width: "150px" }} ref={leftBarMenuDom}>
+                    <MenuItem>新建文件</MenuItem>
+                    <MenuItem>新建文件夹</MenuItem>
+                    <MenuItem>删除文件夹</MenuItem>
+                    <MenuItem rightText="F2">重命名</MenuItem>
+                </Menu>
+            ))
+        }
+        let handle
         if (e.target.nodeName === 'SPAN') {
             if (e.target.dataset.type === 'file') {
                 // console.log(e.target.parentNode.parentNode.dataset.path)
-                let handle = findHandle(e.target.parentNode.parentNode.dataset.path)
-                console.log(handle)
+                handle = findHandle(e.target.parentNode.parentNode.dataset.path)
             } else if (e.target.dataset.type === 'dir') {
-                let handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path)
-                console.log(handle)
+                handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path, 'dir')
             }
-
             // console.log(e.target.parrentNode.id)
         } else if (e.target.nodeName === 'IMG') {
             if (e.target.dataset.type === 'file') {
-                // console.log(e.target.parentNode.parentNode.dataset.path)
-                let handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path)
-                console.log(handle)
+                handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path)
             } else if (e.target.dataset.type === 'dir') {
-                let handle = findHandle(e.target.parentNode.parentNode.parentNode.parentNode.dataset.path)
-                console.log(handle)
+                handle = findHandle(e.target.parentNode.parentNode.parentNode.parentNode.dataset.path, 'dir')
             }
         }
         else if (e.target.nodeName === 'DIV') {
-            console.log(e.target.dataset.type)
+            handle = findHandle(e.target.parentNode.parentNode.dataset.path, 'dir')
         }
+        leftBarContextmenuChosenHandle.current = handle
 
     }
 
@@ -1110,14 +1156,14 @@ export default function Layout({ children }) {
         x: 0,
         y: 0,
     })
-    let topBarMenuInfoRef=useRef(topBarMenuInfo)
-    topBarMenuInfoRef.current=topBarMenuInfo
+    let topBarMenuInfoRef = useRef(topBarMenuInfo)
+    topBarMenuInfoRef.current = topBarMenuInfo
     let topBarMenuDom = useRef()
     let topBarMenuHandle = (e) => {
         e.preventDefault()
         console.log(e.target)
-        if(leftBarMenuInfoRef.current.active){
-            setLeftBarMenuInfo({active:false,x:0,y:0})
+        if (leftBarMenuInfoRef.current.active) {
+            setLeftBarMenuInfo({ active: false, x: 0, y: 0 })
         }
         setTopBarMenuInfo({
             active: true,
@@ -1144,8 +1190,11 @@ export default function Layout({ children }) {
                     if (Refs.current[i].current)
                         Refs.current[i].current.className = `${style.dir}`
                 })
-                currentPath.type = 'dir'
-                currentPath.wholePath = "/"
+                if (currentPath.wholePath) {
+                    currentPath.type = 'dir'
+                    currentPath.wholePath = "/"
+                }
+
             }
 
 
@@ -1173,10 +1222,7 @@ export default function Layout({ children }) {
             {/* 右键侧栏显示菜单 */}
             {
                 leftBarMenuInfo.active ? (
-                    createPortal(<Menu style={{ left: leftBarMenuInfo.x, top: leftBarMenuInfo.y }} ref={leftBarMenuDom}>
-                        <MenuItem>子节点</MenuItem>
-                        <MenuItem>子节点2</MenuItem>
-                    </Menu>, document.body)) : null
+                    createPortal(leftBarMenuListNode, document.body)) : null
             }
             {/* 顶栏菜单 */}
             {
@@ -1220,6 +1266,8 @@ export default function Layout({ children }) {
                     }}></Input>
                 </Modal>
             </>
+
+
             {/* 刷新时候如果有文件未保存，则提示 */}
             <>
                 <Modal title={`警告`} open={isSaveAllFile} footer={[
@@ -1249,10 +1297,11 @@ export default function Layout({ children }) {
             {/* 侧栏 */}
             <div className={style.leftBar} id="leftBar" style={{ display: "flex", flexDirection: "column", width: `${leftBarWidth}px`, left: "5px" }} ref={leftBarDom}>
                 <div style={{ width: "100%", height: "20px", display: "flex", justifyContent: "flex-end" }}>
-                    <Button size="small" icon={<FileAddOutlined />} alt="新增文件" onClick={(e) => newFileOrDir(e, 'file')} className={style.choice} />
-                    <Button size="small" icon={<FolderAddOutlined />} alt="新增文件夹" onClick={(e) => newFileOrDir(e, 'dir')} className={style.choice} />
-                    <Button size="small" icon={<DeleteOutlined />} src="/delete.svg" alt="删除" className={style.choice} />
-                    <Button size="small" icon={<UndoOutlined />} src="/refresh.svg" style={{ marginTop: "0px" }} alt="刷新" className={style.choice} onClick={() => {
+                    <Button size="small" icon={<FileAddOutlined />} title="新建文件" alt="新增文件" onClick={(e) => {
+                        confirmBox(e, 'file')
+                    }} className={style.choice} />
+                    <Button size="small" icon={<FolderAddOutlined />} title="新建文件夹" alt="新增文件夹" onClick={(e) => confirmBox(e, 'dir')} className={style.choice} />
+                    <Button size="small" icon={<UndoOutlined />} style={{ marginTop: "0px" }} title="重载资源管理器" alt="刷新" className={style.choice} onClick={() => {
                         for (let i of Object.keys(state.openedFileContext)) {
                             if (state.openedFileContext[i].hasChange) {
                                 setIsSaveAllFile(true);
@@ -1262,6 +1311,7 @@ export default function Layout({ children }) {
                         closeDir(true); openDir(currentDirHandle);
 
                     }} />
+                    <Button size="small" icon={<SwitcherOutlined />} title="折叠文件夹" alt="折疊文件夹" className={style.choice} onClick={() => folderAllFile()} />
                 </div>
                 <div data-path='/' style={{ display: "flex", transform: "translateY(5px)" }} className="dir-wrapper">
                     {currentDirHandle ? (<div className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: `100%` }}>
