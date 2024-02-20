@@ -1,9 +1,12 @@
+:root{
+    --menu_color:white;
+    --menu_hover_color:#f8f8f8;
+    --menu_boder_color:#e4e4f4;
+}
 .item {
     box-shadow: 50% 10px 100px var(--default-background-color),
         -50% -10px 100px var(--default-background-color);
-    background-color: var(--default-background-color);
-    border: 1px solid var(--left-bar-active-color);
-    border-radius: 4px;
+    background-color: var(--menu_color);
 }
 
 .item_hover {
@@ -11,5 +14,15 @@
     /* background: linear-gradient(135deg, #e0eafc, #ffffff); */
     box-shadow: 50% 10px 100px var(--active-color),
         -50% -10px 100px var(--active-color);
-    background-color: var(--active-color);
+    background-color: var(--menu_hover_color);
+}
+
+.menu_boder{
+    border: 2px solid var(--border-color);
+    box-sizing:border-box;
+    border-radius: 8px;
+}
+.menu{
+    background-color: var(--menu_color);
+    box-shadow: 0 8px 10px #8e8d8d33;
 }

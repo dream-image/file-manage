@@ -22,4 +22,6 @@
     <img src="./picture/添加文件.png" width="100%"/>
     <span>新建文件夹</span>
     <img src="./picture/添加文件夹.png" width="100%"/>
+    <span>侧栏右键显示菜单</span>
+    <img src="./picture/侧栏菜单.png" width="100%"/>
 </div>

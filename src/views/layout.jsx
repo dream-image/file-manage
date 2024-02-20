@@ -359,7 +359,7 @@ export default function Layout({ children }) {
             return currentDirHandleRef.current
         }
         path[path.length - 1] = path[path.length - 1].split('#')[0]
-        console.log(path)
+        // console.log(path)
         function find(path, handle, index) {
             if (handle.kind === 'file') {
                 return handle
@@ -721,8 +721,8 @@ export default function Layout({ children }) {
     //存放是否新建确认新建文件(夹)处理的对象
     let newFileHandleObj = {
         sureNewFile: async (type) => {
-            console.log(type)
-            console.log(currentPath)
+            // console.log(type)
+            // console.log(currentPath)
 
             try {
                 let path = []
@@ -1098,9 +1098,10 @@ export default function Layout({ children }) {
     leftBarMenuInfoRef.current = leftBarMenuInfo
     let leftBarMenuDom = useRef()
     const [leftBarMenuListNode, setLeftBarMenuListNode] = useState()
+    const chosenList = useRef()
     let leftBarMenuHandle = (e) => {
         e.preventDefault()
-        console.log(e.target)
+        // console.log(e.target)
         if (topBarMenuInfoRef.current.active) {
             setTopBarMenuInfo({ active: false, x: 0, y: 0 })
         }
@@ -1113,14 +1114,14 @@ export default function Layout({ children }) {
         })
         if (e.target.dataset.type === 'file') {
             setLeftBarMenuListNode((
-                <Menu style={{ left: e.clientX, top: e.clientY, width: "150px" }} ref={leftBarMenuDom}>
+                <Menu style={{ left: e.clientX, top: e.clientY, width: "170px" }} ref={leftBarMenuDom}>
                     <MenuItem>删除文件</MenuItem>
                     <MenuItem>重命名</MenuItem>
                 </Menu>
             ))
         } else {
             setLeftBarMenuListNode((
-                <Menu style={{ left: e.clientX, top: e.clientY, width: "150px" }} ref={leftBarMenuDom}>
+                <Menu style={{ left: e.clientX, top: e.clientY, width: "170px" }} ref={leftBarMenuDom}>
                     <MenuItem>新建文件</MenuItem>
                     <MenuItem>新建文件夹</MenuItem>
                     <MenuItem>删除文件夹</MenuItem>
@@ -1133,19 +1134,44 @@ export default function Layout({ children }) {
             if (e.target.dataset.type === 'file') {
                 // console.log(e.target.parentNode.parentNode.dataset.path)
                 handle = findHandle(e.target.parentNode.parentNode.dataset.path)
+                if (chosenList.current) {
+                    chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
+                }
+                e.target.parentNode.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode.parentNode
             } else if (e.target.dataset.type === 'dir') {
                 handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path, 'dir')
+                if (chosenList.current) {
+                    chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
+                }
+                e.target.parentNode.parentNode.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode.parentNode.parentNode
             }
             // console.log(e.target.parrentNode.id)
         } else if (e.target.nodeName === 'IMG') {
             if (e.target.dataset.type === 'file') {
                 handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path)
+                if (chosenList.current) {
+                    chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
+                }
+                e.target.parentNode.parentNode.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode.parentNode.parentNode
             } else if (e.target.dataset.type === 'dir') {
                 handle = findHandle(e.target.parentNode.parentNode.parentNode.parentNode.dataset.path, 'dir')
+                if (chosenList.current) {
+                    chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
+                }
+                e.target.parentNode.parentNode.parentNode.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode.parentNode.parentNode.parentNode
             }
         }
         else if (e.target.nodeName === 'DIV') {
             handle = findHandle(e.target.parentNode.parentNode.dataset.path, 'dir')
+            if (chosenList.current) {
+                chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
+            }
+            e.target.parentNode.parentNode.className += " " + style.chosen_menu + " "
+            chosenList.current = e.target.parentNode.parentNode
         }
         leftBarContextmenuChosenHandle.current = handle
 
@@ -1161,7 +1187,7 @@ export default function Layout({ children }) {
     let topBarMenuDom = useRef()
     let topBarMenuHandle = (e) => {
         e.preventDefault()
-        console.log(e.target)
+        // console.log(e.target)
         if (leftBarMenuInfoRef.current.active) {
             setLeftBarMenuInfo({ active: false, x: 0, y: 0 })
         }
@@ -1174,7 +1200,7 @@ export default function Layout({ children }) {
     }
     let closeMenu = (e) => {
         if (leftBarMenuInfoRef.current.active) {
-            console.log('@')
+            // console.log('@')
             setLeftBarMenuInfo({ x: 0, y: 0, active: false })
         }
         if (topBarMenuInfoRef.current.active) {
@@ -1185,6 +1211,10 @@ export default function Layout({ children }) {
         ob.observe(document.body)
         let handleClick = (e) => {
             // console.log(e)
+            if(chosenList.current){
+                chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
+                chosenList.current=undefined
+            }
             if (e.target.id === 'leftBar') {
                 Object.keys(Refs.current).forEach(i => {
                     if (Refs.current[i].current)
