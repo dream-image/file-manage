@@ -1137,15 +1137,15 @@ export default function Layout({ children }) {
                 if (chosenList.current) {
                     chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
                 }
-                e.target.parentNode.parentNode.className += " " + style.chosen_menu + " "
-                chosenList.current = e.target.parentNode.parentNode
+                e.target.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode
             } else if (e.target.dataset.type === 'dir') {
                 handle = findHandle(e.target.parentNode.parentNode.parentNode.dataset.path, 'dir')
                 if (chosenList.current) {
                     chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
                 }
-                e.target.parentNode.parentNode.parentNode.className += " " + style.chosen_menu + " "
-                chosenList.current = e.target.parentNode.parentNode.parentNode
+                e.target.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode
             }
             // console.log(e.target.parrentNode.id)
         } else if (e.target.nodeName === 'IMG') {
@@ -1154,15 +1154,15 @@ export default function Layout({ children }) {
                 if (chosenList.current) {
                     chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
                 }
-                e.target.parentNode.parentNode.parentNode.className += " " + style.chosen_menu + " "
-                chosenList.current = e.target.parentNode.parentNode.parentNode
+                e.target.parentNode.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode.parentNode
             } else if (e.target.dataset.type === 'dir') {
                 handle = findHandle(e.target.parentNode.parentNode.parentNode.parentNode.dataset.path, 'dir')
                 if (chosenList.current) {
                     chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
                 }
-                e.target.parentNode.parentNode.parentNode.parentNode.className += " " + style.chosen_menu + " "
-                chosenList.current = e.target.parentNode.parentNode.parentNode.parentNode
+                e.target.parentNode.parentNode.className += " " + style.chosen_menu + " "
+                chosenList.current = e.target.parentNode.parentNode
             }
         }
         else if (e.target.nodeName === 'DIV') {
@@ -1170,8 +1170,8 @@ export default function Layout({ children }) {
             if (chosenList.current) {
                 chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
             }
-            e.target.parentNode.parentNode.className += " " + style.chosen_menu + " "
-            chosenList.current = e.target.parentNode.parentNode
+            e.target.className += " " + style.chosen_menu + " "
+            chosenList.current = e.target
         }
         leftBarContextmenuChosenHandle.current = handle
 
