@@ -21,7 +21,7 @@ import { useContext } from "react"
 import Context from "../contexts/Context"
 import { copy } from "../utils/copyObject"
 import { handlePropertyName } from "../utils/symbols"
-import { Button, notification, Space, Modal, message, Input } from 'antd'
+import { Button, notification, Space, Modal, message, Input, Spin } from 'antd'
 import {
     FolderOpenTwoTone, UndoOutlined,
     DeleteOutlined, FolderAddOutlined,
@@ -1105,6 +1105,8 @@ export default function Layout({ children }) {
     let leftBarMenuDom = useRef()
     const [leftBarMenuListNode, setLeftBarMenuListNode] = useState()
     const chosenList = useRef()
+
+    const maskInnerDom = useRef(null)
     let leftBarMenuHandle = (e) => {
         e.preventDefault()
         // console.log(e.target)
@@ -1112,6 +1114,8 @@ export default function Layout({ children }) {
             setTopBarMenuInfo({ active: false, x: 0, y: 0 })
         }
         if (e.target?.id === 'leftBar')
+            return
+        if (loading || !currentDirHandleRef.current)
             return
         setLeftBarMenuInfo({
             active: true,
@@ -1172,7 +1176,15 @@ export default function Layout({ children }) {
             }
         }
         else if (e.target.nodeName === 'DIV') {
+            // console.log( maskInnerDom.current)
+            if (maskInnerDom.current && e.target.contains(maskInnerDom.current) || ['mask', 'ant-spin', 'ant-spin-text'].some(i => {
+                return e.target.className.includes(i)
+            })) {
+                return
+            }
+            // console.log(e.target)
             handle = findHandle(e.target.parentNode.parentNode.dataset.path, 'dir')
+
             if (chosenList.current) {
                 chosenList.current?.className && (chosenList.current.className = chosenList.current.className.replace(style.chosen_menu, ""))
             }
@@ -1370,7 +1382,16 @@ export default function Layout({ children }) {
                         ) : null
                     )}
                 </div>
+                {/* 加载侧栏蒙层 */}
+                {loading ? <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 2, }} className="mask">
+                    <div style={{ background: "rgba(0,0,0,0.1)", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }} className="mask"></div>
+                    <div style={{ position: "absolute", left: "0", right: "0", height: "max-content", width: "max-content", bottom: "0", top: "0", margin: "auto" }} className="mask">
+                        <Spin tip="加载中..." size="large" >
+                            <div className="content mask" ref={maskInnerDom} style={{ padding: "50px", background: "rgba(0, 0, 0, 0.1)" }} />
+                        </Spin>
+                    </div>
 
+                </div> : null}
 
             </div>
             {/* 侧栏底部 */}
