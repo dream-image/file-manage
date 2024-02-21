@@ -235,26 +235,31 @@ export default function Layout({ children }) {
         let path = target.split('/')
         path.shift()
         path.push(path.pop().split(dirSuffix)[0])
-        // console.log(path)
+        // console.log(tree)
         if (model === 'inverse') {
             function goto(path, node, index, showNode) {
                 let index2 = 0;
                 // console.log(node)
-                // console.log(showNode)
+                // console.log("showNode:",showNode)
                 for (let i of node) {
                     let name = Object.keys(i)[0]
-                    // console.log(name)
+                    // console.log(name,path,index)
                     if (i[name] instanceof Array && name === path[index]) {
                         if (index < path.length - 1)
-                            return goto(path, i[name], index + 1, showNode[index2][name])
+                            return goto(path, i[name].sort(sort), index + 1, showNode[index2][name])
                         if (!value) {
                             // showNode[index2][name].splice(0, showNode[index2][name].length)
                         }
                         else {
-                            if (showNode[index2][name].length == 0)
-                                showNode[index2][name] = [...copy(i[name].sort(sort))]
+                            // console.log("showNode[index2]:",showNode[index2])
+                            if (!showNode[index2][name] || showNode[index2][name].length == 0) {
+                                // console.log("添加节点数据")
+                                showNode[index2][name] = [...copy(shallowFile(i[name]).sort(sort))]
+                                // console.log("添加完毕")
+                                // console.log("@showNode[index2]@:",showNode[index2])
+                                return true
+                            }
                         }
-                        return true
                     }
                     index2++;
                 }
@@ -265,6 +270,7 @@ export default function Layout({ children }) {
             // console.log(tree)
             // console.log(fileTree)
             if (result) {
+                // console.log(tree)
                 Refs.current = {}
                 Refs.current['/'] = React.createRef()
                 initDomRefs('/', tree, Refs)
@@ -1066,7 +1072,7 @@ export default function Layout({ children }) {
                         <div key={path + "/" + i} data-path={path + "/" + i + dirSuffix} style={{ display: "flex", width: "100%" }}>
                             <div title={currentDirHandle.name + path + "/" + i} className={`${style.border}`} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                                 <div className={style.dir} data-type='dir' style={{ width: "100%", display: "flex" }} ref={Refs.current[path + "/" + i + dirSuffix]} onClick={() => changeChosenBackgroundColorAndFoldState(path + "/" + i + dirSuffix)}>
-                                    <span data-type='dir' style={{ width: "max-content", transform: `translateX(${state.config.gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center" }}>
+                                    <span data-type='dir' style={{ width: "max-content", transform: `translateX(${state.config.gap * index}px)`, display: "flex", flexDirection: "row", alignItems: "center", whiteSpace: "nowrap" }}>
                                         <img data-type='dir' src={foldState[path + "/" + i + dirSuffix] ? downArrow : rightArrow} alt="右箭头" className={style.label} />
                                         <DirImg type='dir'></DirImg>
                                         {i}
@@ -1356,15 +1362,16 @@ export default function Layout({ children }) {
                             <div >{createFileDom('/', showedFile, 1)}</div>
                         </div>
                     </div>) : (
-                        <div style={{ position: "absolute", display: "flex", flexDirection: "column", gap: state.config.gap, width: "100%", left: 0, right: 0, top: ((leftBarDom.current?.getBoundingClientRect().height ? leftBarDom.current?.getBoundingClientRect().height : 0) / 4), margin: "0 auto" }}>
-                            <span style={{ width: "100%", textAlign: "center" }}>尚未打开文件夹</span>
-                            <Button type="primary" onClick={() => openDir()} icon={<FolderOpenTwoTone twoToneColor="#ffffff" />}>打开文件夹</Button>
-                        </div>
-
+                        !loading ? (
+                            <div style={{ position: "absolute", display: "flex", flexDirection: "column", gap: state.config.gap, width: "100%", left: 0, right: 0, top: ((leftBarDom.current?.getBoundingClientRect().height ? leftBarDom.current?.getBoundingClientRect().height : 0) / 4), margin: "0 auto" }}>
+                                <span style={{ width: "100%", textAlign: "center" }}>尚未打开文件夹</span>
+                                <Button type="primary" onClick={() => openDir()} icon={<FolderOpenTwoTone twoToneColor="#ffffff" />}>打开文件夹</Button>
+                            </div>
+                        ) : null
                     )}
                 </div>
 
-             
+
             </div>
             {/* 侧栏底部 */}
             <div style={{
